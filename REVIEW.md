@@ -203,6 +203,60 @@ High 7.
 
 ---
 
+## Art pass
+
+Implemented from `design/Tether Art Reference.dc.html` — the visual spec
+exported from Claude Design. The look is an antique brass orrery in deep space:
+arcs, gradients and polygons only, no bitmaps, so it stays sharp at any scale.
+
+- **Sky ladder** — seven authored depths, then the sheet's cycle rule: hue +18°
+  per lap, lightness × 0.92, floored at `#060710`, dust α × 0.8 per lap. Only
+  the sky moves with depth; stars, dust, bodies and every semantic colour are
+  fixed, so meaning never drifts.
+- **Worlds** — the full six-layer stack: atmospheric halo, gradient body,
+  drifting surface bands, terminator, rim light, engraved brass outline. Seed
+  picks palette, band count and band offsets, so no two neighbours read alike.
+- **Rings** — three states (`current` brass with ticks, `target` cream with a
+  pulsing halo, `distant` dashed), sharing one tick language: 24 divisions from
+  the 12 o'clock mark, 15° apart, radiating outward, every 6th double length.
+- **Hazards** — 11-point star moons, hexagonal blades with tapered tips and a
+  hub, 9-gon asteroids with crater arcs.
+- **Special rings** — told apart by tick language rather than colour alone: gold
+  gets coin discs on the long ticks, slingshot gets one-way chevrons and
+  sweeping streaks, reversal gets offset half-arcs with opposed arrowheads.
+- **Boss** — pulsing two-pass halo, hot body gradient, and a ring that is a
+  *band* rather than a line, with 48 ticks spanning it.
+- **Traveller** — glow to r·4.2, stretch in flight and squash on landing, and a
+  tapered-polygon trail with a gradient down its length. All nine skins moved to
+  the sheet's fill/glow/trail values; the two near-black skins carry a rim and a
+  higher glow peak, since those dots are read from edge and halo, not fill.
+
+Three deliberate departures, all in favour of the game over the sheet:
+
+1. **Asteroid profiles are normalised.** The sheet specifies radius jitter
+   0.72–1.10, which would draw vertices outside the circle the rock actually
+   collides on. The profile is scaled so the widest vertex sits exactly on the
+   hitbox — a silhouette wider than its hitbox is what makes a death feel stolen.
+   The 11-point moon is safe as drawn, since its points sit *on* r and its
+   valleys inside.
+2. **Tick and chevron lengths are proportional to r**, not the sheet's absolute
+   pixels. Rings shrink from 72 to 34 units as difficulty climbs, and an 11px
+   tick that reads as a fine graduation on a large ring reads as a starburst on
+   a small one.
+3. **The boss band is anchored to the gameplay radius.** The sheet sets the band
+   from the body radius; here its inner edge is the ring the player actually
+   orbits, so what you see is what you ride.
+
+**Performance.** The layer stack is four gradients per world, which is the
+classic way to melt a canvas game. Everything except the drifting bands is baked
+once per (palette, radius) into a sprite and blitted, with the cache bounded. The
+star field is baked into a wrapping strip with only the ~26 flare stars live.
+Dust hues are fixed by the sheet rather than derived from the sky, so the dust
+sprites are built once per run instead of being rebuilt on every level change —
+which also closes Medium 11 from the original review.
+
+---
+
 ## Remaining work
 
 Not blockers, but listed in the order I would take them.
@@ -244,17 +298,12 @@ the home indicator.
 planets' moons updated per frame to render about six. Iterate a window around
 `cur` and prune belts behind the camera.
 
-**11. Nebula sprites are rebuilt far too often.** `buildNebulae()` allocates five
-canvases up to ~760×760 (~11 MB) and runs twice in `newRun`, again in
-`restoreRun`, and on every level-up — every ten rings. Build once and tint at
-draw time.
-
-**12. The pause button disappears after a continue.** `endRun` hides it;
+**11. The pause button disappears after a continue.** `endRun` hides it;
 `playBtn`, `againBtn` and `continueBtn` restore it, but `continueRun()` does not.
 After buying a life or watching a revive ad there is no pause button for the rest
 of the run, and no Escape key on a phone. One line.
 
-**13. Mode choice is not persisted.** `gameMode` is absent from `save()`, so it
+**12. Mode choice is not persisted.** `gameMode` is absent from `save()`, so it
 resets to Classic on every launch.
 
 ### Low

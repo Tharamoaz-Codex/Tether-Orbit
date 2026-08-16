@@ -1,0 +1,744 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet data-dc-atomics><meta name="design_doc_mode" content="canvas"><style>body{margin:0;background:#08090F}a{color:#D9AC4B;text-decoration:none}a:hover{color:#F3EEE2}</style></helmet>
+<div style="width:1560px;padding:56px 56px 96px;box-sizing:border-box;background:#08090F;font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;color:#F3EEE2">
+
+  <header style="display:flex;justify-content:space-between;align-items:flex-end;border-bottom:1px solid rgba(217,172,75,.35);padding-bottom:22px;margin-bottom:18px">
+    <div>
+      <div style="font:400 11px/1 'Helvetica Neue',Arial,sans-serif;letter-spacing:.34em;text-transform:uppercase;color:#D9AC4B;margin-bottom:14px">Art reference sheet</div>
+      <h1 style="margin:0;font:400 64px/0.9 'Iowan Old Style','Palatino Linotype',Palatino,'Book Antiqua',serif;letter-spacing:.02em;color:#F3EEE2">Tether</h1>
+    </div>
+    <p style="margin:0;max-width:420px;font:400 13px/1.7 'Iowan Old Style',Palatino,serif;color:#9A93A8;text-wrap:pretty">An antique brass orrery in deep space. Engraved hairlines, ticks like a measuring instrument, warm brass against cool dark skies. Every element below is drawn with arcs, gradients and polygons only.</p>
+  </header>
+
+  <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:0;border-bottom:1px solid rgba(255,255,255,.08);margin-bottom:64px">
+    <div style="padding:20px 28px 22px 0;border-right:1px solid rgba(255,255,255,.08)">
+      <div style="font:400 10px/1 'Helvetica Neue',Arial,sans-serif;letter-spacing:.24em;text-transform:uppercase;color:#8C86A0;margin-bottom:14px">Numerals — serif</div>
+      <div style="font:400 40px/1 'Iowan Old Style','Palatino Linotype',Palatino,serif;color:#F3EEE2;letter-spacing:.02em">0123456789</div>
+      <div style="font:400 10px/1.6 ui-monospace,Menlo,monospace;color:#6F6982;margin-top:12px">Iowan Old Style / Palatino · scores, depth, coins</div>
+    </div>
+    <div style="padding:20px 28px 22px;border-right:1px solid rgba(255,255,255,.08)">
+      <div style="font:400 10px/1 'Helvetica Neue',Arial,sans-serif;letter-spacing:.24em;text-transform:uppercase;color:#8C86A0;margin-bottom:14px">Labels — wide sans</div>
+      <div style="font:400 15px/1.9 'Helvetica Neue',Arial,sans-serif;letter-spacing:.3em;text-transform:uppercase;color:#F3EEE2">Depth · Coins<br>Best run</div>
+      <div style="font:400 10px/1.6 ui-monospace,Menlo,monospace;color:#6F6982;margin-top:12px">tracking .30em · never below 10px</div>
+    </div>
+    <div style="padding:20px 0 22px 28px">
+      <div style="font:400 10px/1 'Helvetica Neue',Arial,sans-serif;letter-spacing:.24em;text-transform:uppercase;color:#8C86A0;margin-bottom:14px">Semantic — never shifts with sky</div>
+      <div style="display:flex;flex-direction:column;gap:9px">
+        <span style="display:flex;align-items:center;gap:9px;font:400 10px/1 ui-monospace,Menlo,monospace;color:#9A93A8"><i style="width:26px;height:10px;background:#FFD666;display:block"></i>#FFD666 &nbsp;reward</span>
+        <span style="display:flex;align-items:center;gap:9px;font:400 10px/1 ui-monospace,Menlo,monospace;color:#9A93A8"><i style="width:26px;height:10px;background:#DD5B4C;display:block"></i>#DD5B4C &nbsp;danger</span>
+        <span style="display:flex;align-items:center;gap:9px;font:400 10px/1 ui-monospace,Menlo,monospace;color:#9A93A8"><i style="width:26px;height:10px;background:#FFC978;display:block"></i>#FFC978 &nbsp;boss</span>
+        <span style="display:flex;align-items:center;gap:9px;font:400 10px/1 ui-monospace,Menlo,monospace;color:#9A93A8"><i style="width:26px;height:10px;background:#D9AC4B;display:block"></i>#D9AC4B &nbsp;brass / your ring</span>
+      </div>
+    </div>
+  </div>
+
+  <section style="margin:0 0 68px">
+    <div style="display:flex;align-items:baseline;gap:16px;border-bottom:1px solid rgba(217,172,75,.22);padding-bottom:10px;margin-bottom:26px">
+      <span style="font:400 11px/1 ui-monospace,Menlo,monospace;color:#D9AC4B;letter-spacing:.14em">01</span>
+      <h2 style="margin:0;font:400 13px/1 'Helvetica Neue',Arial,sans-serif;letter-spacing:.28em;text-transform:uppercase;color:#F3EEE2">Sky ladder</h2>
+      <p style="margin:0;font:400 12px/1 'Iowan Old Style',Palatino,serif;font-style:italic;color:#8C86A0">seven authored depths, then generated</p>
+    </div>
+    <div style="display:flex;gap:14px;flex-wrap:wrap">
+      <figure style="margin:0;display:flex;flex-direction:column;gap:9px"><canvas data-cv="sky" data-sky="#222638" data-seed="3" style="width:196px;height:132px;display:block"></canvas><figcaption style="display:flex;flex-direction:column;gap:4px"><span style="font:400 10px/1 'Helvetica Neue',Arial,sans-serif;letter-spacing:.2em;text-transform:uppercase;color:#B9B2C6">01 Calm Belt</span><span style="font:400 10px/1 ui-monospace,Menlo,monospace;color:#6F6982">#222638</span></figcaption></figure>
+      <figure style="margin:0;display:flex;flex-direction:column;gap:9px"><canvas data-cv="sky" data-sky="#18223E" data-seed="9" style="width:196px;height:132px;display:block"></canvas><figcaption style="display:flex;flex-direction:column;gap:4px"><span style="font:400 10px/1 'Helvetica Neue',Arial,sans-serif;letter-spacing:.2em;text-transform:uppercase;color:#B9B2C6">02 Drift</span><span style="font:400 10px/1 ui-monospace,Menlo,monospace;color:#6F6982">#18223E</span></figcaption></figure>
+      <figure style="margin:0;display:flex;flex-direction:column;gap:9px"><canvas data-cv="sky" data-sky="#121C36" data-seed="14" style="width:196px;height:132px;display:block"></canvas><figcaption style="display:flex;flex-direction:column;gap:4px"><span style="font:400 10px/1 'Helvetica Neue',Arial,sans-serif;letter-spacing:.2em;text-transform:uppercase;color:#B9B2C6">03 Moons</span><span style="font:400 10px/1 ui-monospace,Menlo,monospace;color:#6F6982">#121C36</span></figcaption></figure>
+      <figure style="margin:0;display:flex;flex-direction:column;gap:9px"><canvas data-cv="sky" data-sky="#1C1436" data-seed="21" style="width:196px;height:132px;display:block"></canvas><figcaption style="display:flex;flex-direction:column;gap:4px"><span style="font:400 10px/1 'Helvetica Neue',Arial,sans-serif;letter-spacing:.2em;text-transform:uppercase;color:#B9B2C6">04 Blades</span><span style="font:400 10px/1 ui-monospace,Menlo,monospace;color:#6F6982">#1C1436</span></figcaption></figure>
+      <figure style="margin:0;display:flex;flex-direction:column;gap:9px"><canvas data-cv="sky" data-sky="#261430" data-seed="30" style="width:196px;height:132px;display:block"></canvas><figcaption style="display:flex;flex-direction:column;gap:4px"><span style="font:400 10px/1 'Helvetica Neue',Arial,sans-serif;letter-spacing:.2em;text-transform:uppercase;color:#B9B2C6">05 Debris</span><span style="font:400 10px/1 ui-monospace,Menlo,monospace;color:#6F6982">#261430</span></figcaption></figure>
+      <figure style="margin:0;display:flex;flex-direction:column;gap:9px"><canvas data-cv="sky" data-sky="#2C1424" data-seed="41" style="width:196px;height:132px;display:block"></canvas><figcaption style="display:flex;flex-direction:column;gap:4px"><span style="font:400 10px/1 'Helvetica Neue',Arial,sans-serif;letter-spacing:.2em;text-transform:uppercase;color:#B9B2C6">06 Collapse</span><span style="font:400 10px/1 ui-monospace,Menlo,monospace;color:#6F6982">#2C1424</span></figcaption></figure>
+      <figure style="margin:0;display:flex;flex-direction:column;gap:9px"><canvas data-cv="sky" data-sky="#0A0B12" data-seed="55" style="width:196px;height:132px;display:block"></canvas><figcaption style="display:flex;flex-direction:column;gap:4px"><span style="font:400 10px/1 'Helvetica Neue',Arial,sans-serif;letter-spacing:.2em;text-transform:uppercase;color:#B9B2C6">07 The Deep</span><span style="font:400 10px/1 ui-monospace,Menlo,monospace;color:#6F6982">#0A0B12</span></figcaption></figure>
+    </div>
+    <p style="margin:22px 0 0;font:400 11px/1.7 ui-monospace,Menlo,monospace;color:#6F6982;max-width:1100px">beyond 07 — cycle the ladder with hue rotated +18° per lap and lightness × 0.92 (floor #060710). star density × 1.15, dust α × 0.8 each lap.</p>
+  </section>
+
+  <section style="margin:0 0 68px">
+    <div style="display:flex;align-items:baseline;gap:16px;border-bottom:1px solid rgba(217,172,75,.22);padding-bottom:10px;margin-bottom:26px">
+      <span style="font:400 11px/1 ui-monospace,Menlo,monospace;color:#D9AC4B;letter-spacing:.14em">02</span>
+      <h2 style="margin:0;font:400 13px/1 'Helvetica Neue',Arial,sans-serif;letter-spacing:.28em;text-transform:uppercase;color:#F3EEE2">Planet</h2>
+      <p style="margin:0;font:400 12px/1 'Iowan Old Style',Palatino,serif;font-style:italic;color:#8C86A0">light from upper-left · terminator · rim · halo</p>
+    </div>
+    <div style="display:flex;gap:32px;align-items:flex-start;flex-wrap:wrap">
+      <canvas data-cv="anatomy" data-sky="#18223E" data-seed="6" style="width:660px;height:420px;display:block"></canvas>
+      <div style="display:flex;flex-direction:column;gap:14px;width:380px">
+        <div style="font:400 10px/1 'Helvetica Neue',Arial,sans-serif;letter-spacing:.24em;text-transform:uppercase;color:#8C86A0">Layer stack, back to front</div>
+        <ol style="margin:0;padding:0 0 0 18px;font:400 12px/2 'Iowan Old Style',Palatino,serif;color:#B9B2C6">
+          <li>Atmospheric halo — radial gradient, r·0.92 → r·1.40, α .28 → 0</li>
+          <li>Body — radial gradient centred (−0.36r, −0.40r), r·0.06 → r·1.35: light → base → dark</li>
+          <li>Surface bands — 3–5 clipped ellipses, ry 0.05–0.16r, α .05–.10, drifting ±0.03r on sine</li>
+          <li>Terminator — radial gradient centred (−0.45r, −0.50r), 0.15r → 2.05r, transparent → rgba(6,6,12,.82)</li>
+          <li>Rim light — arc(r − lw/2, 0.95π → 1.62π), lw 0.035r, body light colour at α .85</li>
+          <li>Engraved outline — 1px circle, #D9AC4B at α .22</li>
+        </ol>
+        <div style="font:400 11px/1.7 ui-monospace,Menlo,monospace;color:#6F6982;border-top:1px solid rgba(255,255,255,.08);padding-top:12px">individuality = seed → palette index, band count, band offsets, radius ±12%. never clone the band layout.</div>
+      </div>
+    </div>
+    <div style="display:flex;gap:16px;flex-wrap:wrap;margin-top:30px">
+      <figure style="margin:0;display:flex;flex-direction:column;gap:9px"><canvas data-cv="planet" data-sky="#222638" data-pal="0" data-seed="7" style="width:218px;height:218px;display:block"></canvas><figcaption style="font:400 10px/1.7 ui-monospace,Menlo,monospace;color:#6F6982">slate · #8FA0C4 #4C5B85 #1B2138</figcaption></figure>
+      <figure style="margin:0;display:flex;flex-direction:column;gap:9px"><canvas data-cv="planet" data-sky="#18223E" data-pal="1" data-seed="23" style="width:218px;height:218px;display:block"></canvas><figcaption style="font:400 10px/1.7 ui-monospace,Menlo,monospace;color:#6F6982">sand · #D9B98C #9C7449 #2E2018</figcaption></figure>
+      <figure style="margin:0;display:flex;flex-direction:column;gap:9px"><canvas data-cv="planet" data-sky="#121C36" data-pal="2" data-seed="41" style="width:218px;height:218px;display:block"></canvas><figcaption style="font:400 10px/1.7 ui-monospace,Menlo,monospace;color:#6F6982">verdigris · #8FC7B6 #3F7A6E #132A2A</figcaption></figure>
+      <figure style="margin:0;display:flex;flex-direction:column;gap:9px"><canvas data-cv="planet" data-sky="#1C1436" data-pal="3" data-seed="58" style="width:218px;height:218px;display:block"></canvas><figcaption style="font:400 10px/1.7 ui-monospace,Menlo,monospace;color:#6F6982">plum · #C6A0C9 #7A5580 #241831</figcaption></figure>
+      <figure style="margin:0;display:flex;flex-direction:column;gap:9px"><canvas data-cv="planet" data-sky="#0A0B12" data-pal="4" data-seed="77" style="width:218px;height:218px;display:block"></canvas><figcaption style="font:400 10px/1.7 ui-monospace,Menlo,monospace;color:#6F6982">stone · #C9C3B4 #6E6A5E #1E1D1A</figcaption></figure>
+    </div>
+  </section>
+
+  <section style="margin:0 0 68px">
+    <div style="display:flex;align-items:baseline;gap:16px;border-bottom:1px solid rgba(217,172,75,.22);padding-bottom:10px;margin-bottom:26px">
+      <span style="font:400 11px/1 ui-monospace,Menlo,monospace;color:#D9AC4B;letter-spacing:.14em">03</span>
+      <h2 style="margin:0;font:400 13px/1 'Helvetica Neue',Arial,sans-serif;letter-spacing:.28em;text-transform:uppercase;color:#F3EEE2">Orbit ring — three states</h2>
+    </div>
+    <div style="display:flex;gap:22px;align-items:flex-start;flex-wrap:wrap">
+      <figure style="margin:0;display:flex;flex-direction:column;gap:9px"><canvas data-cv="ring" data-sky="#18223E" data-mode="current" data-seed="4" style="width:268px;height:268px;display:block"></canvas><figcaption style="display:flex;flex-direction:column;gap:5px;width:268px"><span style="font:400 10px/1 'Helvetica Neue',Arial,sans-serif;letter-spacing:.2em;text-transform:uppercase;color:#D9AC4B">On this ring</span><span style="font:400 10px/1.7 ui-monospace,Menlo,monospace;color:#6F6982">#D9AC4B · lw 1.25 · 24 ticks, every 6th ×2</span></figcaption></figure>
+      <figure style="margin:0;display:flex;flex-direction:column;gap:9px"><canvas data-cv="ring" data-sky="#18223E" data-mode="target" data-anim="1" data-seed="12" style="width:268px;height:268px;display:block"></canvas><figcaption style="display:flex;flex-direction:column;gap:5px;width:268px"><span style="font:400 10px/1 'Helvetica Neue',Arial,sans-serif;letter-spacing:.2em;text-transform:uppercase;color:#F3EEE2">Aiming for</span><span style="font:400 10px/1.7 ui-monospace,Menlo,monospace;color:#6F6982">#F3EEE2 · α .62→1 @ 0.35Hz · 6px halo ring α .06</span></figcaption></figure>
+      <figure style="margin:0;display:flex;flex-direction:column;gap:9px"><canvas data-cv="ring" data-sky="#18223E" data-mode="distant" data-seed="19" style="width:268px;height:268px;display:block"></canvas><figcaption style="display:flex;flex-direction:column;gap:5px;width:268px"><span style="font:400 10px/1 'Helvetica Neue',Arial,sans-serif;letter-spacing:.2em;text-transform:uppercase;color:#8C86A0">Distant</span><span style="font:400 10px/1.7 ui-monospace,Menlo,monospace;color:#6F6982">#463D5E · lw 1 · dash [5, 9]</span></figcaption></figure>
+      <figure style="margin:0;display:flex;flex-direction:column;gap:9px"><canvas data-cv="tickspec" data-sky="#0E1020" style="width:400px;height:268px;display:block"></canvas><figcaption style="font:400 10px/1.7 ui-monospace,Menlo,monospace;color:#6F6982;width:400px">ticks radiate outward from r, drawn from the 12 o'clock division (−π/2), 15° apart</figcaption></figure>
+    </div>
+  </section>
+
+  <section style="margin:0 0 68px">
+    <div style="display:flex;align-items:baseline;gap:16px;border-bottom:1px solid rgba(217,172,75,.22);padding-bottom:10px;margin-bottom:26px">
+      <span style="font:400 11px/1 ui-monospace,Menlo,monospace;color:#D9AC4B;letter-spacing:.14em">04</span>
+      <h2 style="margin:0;font:400 13px/1 'Helvetica Neue',Arial,sans-serif;letter-spacing:.28em;text-transform:uppercase;color:#F3EEE2">The traveller</h2>
+      <p style="margin:0;font:400 12px/1 'Iowan Old Style',Palatino,serif;font-style:italic;color:#8C86A0">stretch in flight, squash on landing</p>
+    </div>
+    <div style="display:flex;gap:22px;align-items:flex-start;flex-wrap:wrap">
+      <figure style="margin:0;display:flex;flex-direction:column;gap:9px"><canvas data-cv="flight" data-sky="#121C36" data-anim="1" data-seed="5" style="width:660px;height:268px;display:block"></canvas><figcaption style="font:400 10px/1.7 ui-monospace,Menlo,monospace;color:#6F6982;width:660px">flight path = quadratic bezier between ring exit and ring entry · trail = 26-sample polygon, half-width w₀·(1 − i/n)^1.3, gradient α .55 → 0</figcaption></figure>
+      <div style="display:flex;gap:14px">
+        <figure style="margin:0;display:flex;flex-direction:column;gap:9px"><canvas data-cv="travstate" data-sky="#121C36" data-state="idle" style="width:168px;height:168px;display:block"></canvas><figcaption style="font:400 10px/1.7 ui-monospace,Menlo,monospace;color:#6F6982;width:168px">idle · rx = ry = r</figcaption></figure>
+        <figure style="margin:0;display:flex;flex-direction:column;gap:9px"><canvas data-cv="travstate" data-sky="#121C36" data-state="stretch" style="width:168px;height:168px;display:block"></canvas><figcaption style="font:400 10px/1.7 ui-monospace,Menlo,monospace;color:#6F6982;width:168px">flight · rx = r(1+s), ry = r/(1+0.75s), s ≤ .45, rotated to heading</figcaption></figure>
+        <figure style="margin:0;display:flex;flex-direction:column;gap:9px"><canvas data-cv="travstate" data-sky="#121C36" data-state="squash" style="width:168px;height:168px;display:block"></canvas><figcaption style="font:400 10px/1.7 ui-monospace,Menlo,monospace;color:#6F6982;width:168px">landing · s = −.35 for 110ms, eased back</figcaption></figure>
+      </div>
+    </div>
+  </section>
+
+  <section style="margin:0 0 68px">
+    <div style="display:flex;align-items:baseline;gap:16px;border-bottom:1px solid rgba(217,172,75,.22);padding-bottom:10px;margin-bottom:26px">
+      <span style="font:400 11px/1 ui-monospace,Menlo,monospace;color:#D9AC4B;letter-spacing:.14em">05</span>
+      <h2 style="margin:0;font:400 13px/1 'Helvetica Neue',Arial,sans-serif;letter-spacing:.28em;text-transform:uppercase;color:#F3EEE2">Hazards</h2>
+      <p style="margin:0;font:400 12px/1 'Iowan Old Style',Palatino,serif;font-style:italic;color:#8C86A0">dangerous by silhouette before colour</p>
+    </div>
+    <div style="display:flex;gap:16px;flex-wrap:wrap;margin-bottom:26px">
+      <figure style="margin:0;display:flex;flex-direction:column;gap:9px"><canvas data-cv="hazard" data-kind="moon" data-sky="#121C36" data-anim="1" data-seed="8" style="width:268px;height:268px;display:block"></canvas><figcaption style="display:flex;flex-direction:column;gap:5px;width:268px"><span style="font:400 10px/1 'Helvetica Neue',Arial,sans-serif;letter-spacing:.2em;text-transform:uppercase;color:#DD5B4C">Moon</span><span style="font:400 10px/1.7 ui-monospace,Menlo,monospace;color:#6F6982">#DD5B4C · 11-point star, r_inner = 0.60·r · orbits on the ring</span></figcaption></figure>
+      <figure style="margin:0;display:flex;flex-direction:column;gap:9px"><canvas data-cv="hazard" data-kind="blade" data-sky="#1C1436" data-anim="1" data-seed="16" style="width:268px;height:268px;display:block"></canvas><figcaption style="display:flex;flex-direction:column;gap:5px;width:268px"><span style="font:400 10px/1 'Helvetica Neue',Arial,sans-serif;letter-spacing:.2em;text-transform:uppercase;color:#DD5B4C">Blade</span><span style="font:400 10px/1.7 ui-monospace,Menlo,monospace;color:#6F6982">#DD5B4C · hexagonal bar, half-length orbitR + 16 so tips clear the ring · thick 0.10·planet r, tips tapered 12% · hub 0.85·thick</span></figcaption></figure>
+      <figure style="margin:0;display:flex;flex-direction:column;gap:9px"><canvas data-cv="hazard" data-kind="rock" data-sky="#261430" data-anim="1" data-seed="27" style="width:268px;height:268px;display:block"></canvas><figcaption style="display:flex;flex-direction:column;gap:5px;width:268px"><span style="font:400 10px/1 'Helvetica Neue',Arial,sans-serif;letter-spacing:.2em;text-transform:uppercase;color:#DD5B4C">Asteroid</span><span style="font:400 10px/1.7 ui-monospace,Menlo,monospace;color:#6F6982">9-gon, radius jitter 0.72–1.10 · 3 crater arcs · drifts across the gap</span></figcaption></figure>
+    </div>
+    <div style="border-top:1px solid rgba(255,255,255,.08);padding-top:22px">
+      <div style="font:400 10px/1 'Helvetica Neue',Arial,sans-serif;letter-spacing:.24em;text-transform:uppercase;color:#FFD666;margin-bottom:16px">High-contrast variant — amber #FFD666, outline #120D14 at lw 3</div>
+      <div style="display:flex;gap:16px;flex-wrap:wrap">
+        <canvas data-cv="hazard" data-kind="moon" data-sky="#121C36" data-hc="1" data-anim="1" data-seed="8" style="width:268px;height:268px;display:block"></canvas>
+        <canvas data-cv="hazard" data-kind="blade" data-sky="#1C1436" data-hc="1" data-anim="1" data-seed="16" style="width:268px;height:268px;display:block"></canvas>
+        <canvas data-cv="hazard" data-kind="rock" data-sky="#261430" data-hc="1" data-anim="1" data-seed="27" style="width:268px;height:268px;display:block"></canvas>
+        <p style="margin:0;width:290px;font:400 11px/1.8 ui-monospace,Menlo,monospace;color:#6F6982">same geometry, no shape changes. only fill → #FFD666, outline → #120D14 lw 3, inner shading α halved. silhouettes stay legible at 24px on a 320dp screen.</p>
+      </div>
+    </div>
+  </section>
+
+  <section style="margin:0 0 68px">
+    <div style="display:flex;align-items:baseline;gap:16px;border-bottom:1px solid rgba(217,172,75,.22);padding-bottom:10px;margin-bottom:26px">
+      <span style="font:400 11px/1 ui-monospace,Menlo,monospace;color:#D9AC4B;letter-spacing:.14em">06</span>
+      <h2 style="margin:0;font:400 13px/1 'Helvetica Neue',Arial,sans-serif;letter-spacing:.28em;text-transform:uppercase;color:#F3EEE2">Special rings</h2>
+      <p style="margin:0;font:400 12px/1 'Iowan Old Style',Palatino,serif;font-style:italic;color:#8C86A0">told apart by tick language, not colour alone</p>
+    </div>
+    <div style="display:flex;gap:16px;flex-wrap:wrap">
+      <figure style="margin:0;display:flex;flex-direction:column;gap:9px"><canvas data-cv="special" data-kind="gold" data-sky="#222638" data-anim="1" data-seed="11" style="width:268px;height:268px;display:block"></canvas><figcaption style="display:flex;flex-direction:column;gap:5px;width:268px"><span style="font:400 10px/1 'Helvetica Neue',Arial,sans-serif;letter-spacing:.2em;text-transform:uppercase;color:#FFD666">Gold · +5 coins</span><span style="font:400 10px/1.7 ui-monospace,Menlo,monospace;color:#6F6982">#FFD666 · double hairline + 6 coin discs on the long ticks</span></figcaption></figure>
+      <figure style="margin:0;display:flex;flex-direction:column;gap:9px"><canvas data-cv="special" data-kind="sling" data-sky="#18223E" data-anim="1" data-seed="13" style="width:268px;height:268px;display:block"></canvas><figcaption style="display:flex;flex-direction:column;gap:5px;width:268px"><span style="font:400 10px/1 'Helvetica Neue',Arial,sans-serif;letter-spacing:.2em;text-transform:uppercase;color:#7FD1C1">Slingshot · faster</span><span style="font:400 10px/1.7 ui-monospace,Menlo,monospace;color:#6F6982">#7FD1C1 · 8 tangential chevrons, all one way + 3 sweeping streaks</span></figcaption></figure>
+      <figure style="margin:0;display:flex;flex-direction:column;gap:9px"><canvas data-cv="special" data-kind="rev" data-sky="#1C1436" data-anim="1" data-seed="17" style="width:268px;height:268px;display:block"></canvas><figcaption style="display:flex;flex-direction:column;gap:5px;width:268px"><span style="font:400 10px/1 'Helvetica Neue',Arial,sans-serif;letter-spacing:.2em;text-transform:uppercase;color:#C79BFF">Reversal · flips spin</span><span style="font:400 10px/1.7 ui-monospace,Menlo,monospace;color:#6F6982">#C79BFF · two offset half-arcs (±3px) + opposed arrowheads · ticks alternate in/out</span></figcaption></figure>
+    </div>
+  </section>
+
+  <section style="margin:0 0 68px">
+    <div style="display:flex;align-items:baseline;gap:16px;border-bottom:1px solid rgba(217,172,75,.22);padding-bottom:10px;margin-bottom:26px">
+      <span style="font:400 11px/1 ui-monospace,Menlo,monospace;color:#D9AC4B;letter-spacing:.14em">07</span>
+      <h2 style="margin:0;font:400 13px/1 'Helvetica Neue',Arial,sans-serif;letter-spacing:.28em;text-transform:uppercase;color:#F3EEE2">Boss world</h2>
+    </div>
+    <div style="display:flex;gap:32px;align-items:flex-start;flex-wrap:wrap">
+      <canvas data-cv="boss" data-sky="#2C1424" data-anim="1" data-seed="2" style="width:540px;height:540px;display:block"></canvas>
+      <div style="display:flex;flex-direction:column;gap:16px;width:400px">
+        <div style="font:400 10px/1 'Helvetica Neue',Arial,sans-serif;letter-spacing:.24em;text-transform:uppercase;color:#8C86A0">Build</div>
+        <ul style="margin:0;padding:0 0 0 18px;font:400 12px/2 'Iowan Old Style',Palatino,serif;color:#B9B2C6">
+          <li>Radius 2× an ordinary planet — the dashed hairline marks standard scale</li>
+          <li>Body gradient #FFC978 → #C4622C → #8E3A22, same upper-left light origin</li>
+          <li>Pulsing halo, two passes of #DD3B2E: r·1.15 → r·1.75 at α .30 → 0, scale ±6% at 0.30 Hz</li>
+          <li>Wide ring — a band, not a line: inner r·1.42, outer r·1.60, brass hairline on both edges, 48 ticks spanning the band, every 6th full width</li>
+          <li>Two dark equatorial bands at α .12 keep the body from reading flat</li>
+        </ul>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;padding-top:6px;border-top:1px solid rgba(255,255,255,.08)">
+          <span style="display:flex;align-items:center;gap:6px;font:400 10px/1 ui-monospace,Menlo,monospace;color:#9A93A8"><i style="width:18px;height:10px;background:#FFC978;display:block"></i>#FFC978</span>
+          <span style="display:flex;align-items:center;gap:6px;font:400 10px/1 ui-monospace,Menlo,monospace;color:#9A93A8"><i style="width:18px;height:10px;background:#C4622C;display:block"></i>#C4622C</span>
+          <span style="display:flex;align-items:center;gap:6px;font:400 10px/1 ui-monospace,Menlo,monospace;color:#9A93A8"><i style="width:18px;height:10px;background:#8E3A22;display:block"></i>#8E3A22</span>
+          <span style="display:flex;align-items:center;gap:6px;font:400 10px/1 ui-monospace,Menlo,monospace;color:#9A93A8"><i style="width:18px;height:10px;background:#DD3B2E;display:block"></i>#DD3B2E</span>
+          <span style="display:flex;align-items:center;gap:6px;font:400 10px/1 ui-monospace,Menlo,monospace;color:#9A93A8"><i style="width:18px;height:10px;background:#D9AC4B;display:block"></i>#D9AC4B</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section style="margin:0 0 68px">
+    <div style="display:flex;align-items:baseline;gap:16px;border-bottom:1px solid rgba(217,172,75,.22);padding-bottom:10px;margin-bottom:26px">
+      <span style="font:400 11px/1 ui-monospace,Menlo,monospace;color:#D9AC4B;letter-spacing:.14em">08</span>
+      <h2 style="margin:0;font:400 13px/1 'Helvetica Neue',Arial,sans-serif;letter-spacing:.28em;text-transform:uppercase;color:#F3EEE2">Traveller skins</h2>
+      <p style="margin:0;font:400 12px/1 'Iowan Old Style',Palatino,serif;font-style:italic;color:#8C86A0">fill · glow · trail</p>
+    </div>
+    <div style="display:flex;gap:14px;flex-wrap:wrap">
+      <figure style="margin:0;display:flex;flex-direction:column;gap:8px"><canvas data-cv="skin" data-i="0" style="width:236px;height:150px;display:block"></canvas><figcaption style="display:flex;flex-direction:column;gap:4px"><span style="font:400 10px/1 'Helvetica Neue',Arial,sans-serif;letter-spacing:.2em;text-transform:uppercase;color:#B9B2C6">Pearl</span><span style="font:400 10px/1.6 ui-monospace,Menlo,monospace;color:#6F6982">#F3EEE2 · #F3EEE2 · #F3EEE2</span></figcaption></figure>
+      <figure style="margin:0;display:flex;flex-direction:column;gap:8px"><canvas data-cv="skin" data-i="1" style="width:236px;height:150px;display:block"></canvas><figcaption style="display:flex;flex-direction:column;gap:4px"><span style="font:400 10px/1 'Helvetica Neue',Arial,sans-serif;letter-spacing:.2em;text-transform:uppercase;color:#B9B2C6">Ember</span><span style="font:400 10px/1.6 ui-monospace,Menlo,monospace;color:#6F6982">#FF8A5B · #FF5E2E · #FFB07A</span></figcaption></figure>
+      <figure style="margin:0;display:flex;flex-direction:column;gap:8px"><canvas data-cv="skin" data-i="2" style="width:236px;height:150px;display:block"></canvas><figcaption style="display:flex;flex-direction:column;gap:4px"><span style="font:400 10px/1 'Helvetica Neue',Arial,sans-serif;letter-spacing:.2em;text-transform:uppercase;color:#B9B2C6">Verdigris</span><span style="font:400 10px/1.6 ui-monospace,Menlo,monospace;color:#6F6982">#7FD1C1 · #4FB5A2 · #A9E4D9</span></figcaption></figure>
+      <figure style="margin:0;display:flex;flex-direction:column;gap:8px"><canvas data-cv="skin" data-i="3" style="width:236px;height:150px;display:block"></canvas><figcaption style="display:flex;flex-direction:column;gap:4px"><span style="font:400 10px/1 'Helvetica Neue',Arial,sans-serif;letter-spacing:.2em;text-transform:uppercase;color:#B9B2C6">Amethyst</span><span style="font:400 10px/1.6 ui-monospace,Menlo,monospace;color:#6F6982">#C79BFF · #9B6BFF · #DCC2FF</span></figcaption></figure>
+      <figure style="margin:0;display:flex;flex-direction:column;gap:8px"><canvas data-cv="skin" data-i="4" style="width:236px;height:150px;display:block"></canvas><figcaption style="display:flex;flex-direction:column;gap:4px"><span style="font:400 10px/1 'Helvetica Neue',Arial,sans-serif;letter-spacing:.2em;text-transform:uppercase;color:#B9B2C6">Solar flare</span><span style="font:400 10px/1.6 ui-monospace,Menlo,monospace;color:#6F6982">#FFE066 · #FFC01F · #FFEFA8</span></figcaption></figure>
+      <figure style="margin:0;display:flex;flex-direction:column;gap:8px"><canvas data-cv="skin" data-i="5" style="width:236px;height:150px;display:block"></canvas><figcaption style="display:flex;flex-direction:column;gap:4px"><span style="font:400 10px/1 'Helvetica Neue',Arial,sans-serif;letter-spacing:.2em;text-transform:uppercase;color:#B9B2C6">Voidwalker <span style="color:#8F7BE0">· rim</span></span><span style="font:400 10px/1.6 ui-monospace,Menlo,monospace;color:#6F6982">#2A2440 · #8F7BE0 · #6E5FA8 · rim #BFA8FF</span></figcaption></figure>
+      <figure style="margin:0;display:flex;flex-direction:column;gap:8px"><canvas data-cv="skin" data-i="6" style="width:236px;height:150px;display:block"></canvas><figcaption style="display:flex;flex-direction:column;gap:4px"><span style="font:400 10px/1 'Helvetica Neue',Arial,sans-serif;letter-spacing:.2em;text-transform:uppercase;color:#B9B2C6">Comet</span><span style="font:400 10px/1.6 ui-monospace,Menlo,monospace;color:#6F6982">#BFE9FF · #7FD0FF · #DFF4FF</span></figcaption></figure>
+      <figure style="margin:0;display:flex;flex-direction:column;gap:8px"><canvas data-cv="skin" data-i="7" style="width:236px;height:150px;display:block"></canvas><figcaption style="display:flex;flex-direction:column;gap:4px"><span style="font:400 10px/1 'Helvetica Neue',Arial,sans-serif;letter-spacing:.2em;text-transform:uppercase;color:#B9B2C6">Lantern</span><span style="font:400 10px/1.6 ui-monospace,Menlo,monospace;color:#6F6982">#FFC98A · #FF9E3D · #FFE0BC</span></figcaption></figure>
+      <figure style="margin:0;display:flex;flex-direction:column;gap:8px"><canvas data-cv="skin" data-i="8" style="width:236px;height:150px;display:block"></canvas><figcaption style="display:flex;flex-direction:column;gap:4px"><span style="font:400 10px/1 'Helvetica Neue',Arial,sans-serif;letter-spacing:.2em;text-transform:uppercase;color:#B9B2C6">Eclipse <span style="color:#FFB98F">· rim</span></span><span style="font:400 10px/1.6 ui-monospace,Menlo,monospace;color:#6F6982">#141018 · #FF9E6B · #4A2C22 · rim #FFB98F</span></figcaption></figure>
+    </div>
+    <p style="margin:22px 0 0;font:400 11px/1.7 ui-monospace,Menlo,monospace;color:#6F6982;max-width:1100px">near-black skins (Voidwalker, Eclipse) carry a 1.4px rim at full opacity and a glow that peaks at α .70 instead of .55 — the dot is read from its edge and halo, not its fill.</p>
+  </section>
+
+  <section style="margin:0 0 68px">
+    <div style="display:flex;align-items:baseline;gap:16px;border-bottom:1px solid rgba(217,172,75,.22);padding-bottom:10px;margin-bottom:26px">
+      <span style="font:400 11px/1 ui-monospace,Menlo,monospace;color:#D9AC4B;letter-spacing:.14em">09</span>
+      <h2 style="margin:0;font:400 13px/1 'Helvetica Neue',Arial,sans-serif;letter-spacing:.28em;text-transform:uppercase;color:#F3EEE2">Background layers</h2>
+    </div>
+    <div style="display:flex;gap:16px;flex-wrap:wrap">
+      <figure style="margin:0;display:flex;flex-direction:column;gap:9px"><canvas data-cv="layer" data-kind="stars" data-sky="#121C36" data-seed="31" style="width:360px;height:230px;display:block"></canvas><figcaption style="font:400 10px/1.7 ui-monospace,Menlo,monospace;color:#6F6982;width:360px">stars only — 1 per 1500px², r = 0.35 + s²·1.5, α .20–.80<br>#F3EEE2 #BFE9FF #FFD9A8 #C9C3E6</figcaption></figure>
+      <figure style="margin:0;display:flex;flex-direction:column;gap:9px"><canvas data-cv="layer" data-kind="flare" data-sky="#121C36" data-seed="33" style="width:360px;height:230px;display:block"></canvas><figcaption style="font:400 10px/1.7 ui-monospace,Menlo,monospace;color:#6F6982;width:360px">cross flare — 3% of stars. two 1px lines, gradient transparent → colour → transparent, plus a soft disc r = 0.7·len</figcaption></figure>
+      <figure style="margin:0;display:flex;flex-direction:column;gap:9px"><canvas data-cv="layer" data-kind="dust" data-sky="#121C36" data-seed="35" style="width:360px;height:230px;display:block"></canvas><figcaption style="font:400 10px/1.7 ui-monospace,Menlo,monospace;color:#6F6982;width:360px">dust — 2–3 radial gradients, r = 0.45–0.95 · max(w,h), α .16 → .05 → 0<br>#3A2F5A #4A3550 #2E3A5C #5A3F35</figcaption></figure>
+      <figure style="margin:0;display:flex;flex-direction:column;gap:9px"><canvas data-cv="layer" data-kind="comp" data-sky="#121C36" data-seed="37" style="width:360px;height:230px;display:block"></canvas><figcaption style="font:400 10px/1.7 ui-monospace,Menlo,monospace;color:#6F6982;width:360px">composited — dust under stars, parallax 0.15× / 0.4× of climb speed</figcaption></figure>
+    </div>
+  </section>
+
+  <section style="margin:0">
+    <div style="display:flex;align-items:baseline;gap:16px;border-bottom:1px solid rgba(217,172,75,.22);padding-bottom:10px;margin-bottom:26px">
+      <span style="font:400 11px/1 ui-monospace,Menlo,monospace;color:#D9AC4B;letter-spacing:.14em">10</span>
+      <h2 style="margin:0;font:400 13px/1 'Helvetica Neue',Arial,sans-serif;letter-spacing:.28em;text-transform:uppercase;color:#F3EEE2">Everything in place</h2>
+      <p style="margin:0;font:400 12px/1 'Iowan Old Style',Palatino,serif;font-style:italic;color:#8C86A0">depth and hazard palette are tweakable</p>
+    </div>
+    <canvas data-cv="scene" data-anim="1" data-seed="64" style="width:1448px;height:470px;display:block"></canvas>
+    <p style="margin:18px 0 0;font:400 11px/1.7 ui-monospace,Menlo,monospace;color:#6F6982;max-width:1100px">draw order — sky fill · dust · stars · distant dashed rings · planets (halo, body, terminator, rim) · special + current + target rings · hazards · traveller trail · traveller · HUD.</p>
+  </section>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;pauseMotion&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:false,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Sheet&quot;},&quot;sceneLevel&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;1&quot;,&quot;2&quot;,&quot;3&quot;,&quot;4&quot;,&quot;5&quot;,&quot;6&quot;,&quot;7&quot;],&quot;default&quot;:&quot;5&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;In-situ scene&quot;},&quot;hazardMode&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;Vermilion&quot;,&quot;Amber high-contrast&quot;],&quot;default&quot;:&quot;Vermilion&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;In-situ scene&quot;}}">
+class Component extends DCLogic {
+  constructor(p){ super(p); this.list=[]; this.f=0; this.lastT=0; }
+  componentDidMount(){ this.tick=this.tick.bind(this); this.onResize=()=>this.scan(true); this.scan(); this.raf=requestAnimationFrame(this.tick); window.addEventListener('resize',this.onResize); }
+  componentDidUpdate(){ for(const c of this.list) this.draw(c,this.lastT); }
+  componentWillUnmount(){ cancelAnimationFrame(this.raf); window.removeEventListener('resize',this.onResize); }
+  renderVals(){ return {}; }
+
+  tick(ms){
+    const t=ms/1000; this.lastT=t;
+    const paused=this.props.pauseMotion===true;
+    for(const c of this.list){ if(c.dataset.anim==='1' && !paused) this.draw(c,t); }
+    if(++this.f%40===0) this.scan();
+    this.raf=requestAnimationFrame(this.tick);
+  }
+  scan(refit){
+    const all=document.querySelectorAll('canvas[data-cv]');
+    all.forEach(c=>{ if(!c._reg||refit){ if(!c._reg){ c._reg=1; this.list.push(c); } this.fit(c); this.draw(c,this.lastT); } });
+  }
+  fit(c){
+    const dpr=Math.min(2,window.devicePixelRatio||1);
+    const w=c.clientWidth||parseFloat(c.style.width)||300, h=c.clientHeight||parseFloat(c.style.height)||200;
+    c.width=Math.round(w*dpr); c.height=Math.round(h*dpr);
+    c.getContext('2d').setTransform(dpr,0,0,dpr,0,0); c._w=w; c._h=h;
+  }
+  draw(c,t){
+    const g=c.getContext('2d'); const d=c.dataset; const fn=this['r_'+d.cv];
+    if(!fn) return; g.save(); g.clearRect(0,0,c._w,c._h); fn.call(this,g,c._w,c._h,d,t||0,c); g.restore();
+  }
+
+  rgba(hex,a){ const h=hex.replace('#',''); const s=h.length===3?h.split('').map(x=>x+x).join(''):h; const n=parseInt(s,16); return 'rgba('+(n>>16&255)+','+(n>>8&255)+','+(n&255)+','+a+')'; }
+  rnd(seed){ let a=((seed||1)*2654435761)>>>0; return ()=>{ a=(a+0x6D2B79F5)|0; let x=Math.imul(a^(a>>>15),1|a); x=(x+Math.imul(x^(x>>>7),61|x))^x; return ((x^(x>>>14))>>>0)/4294967296; }; }
+  tlabel(g,x,y,text,size,color,track,align){
+    g.font='400 '+size+'px "Helvetica Neue",Helvetica,Arial,sans-serif'; g.fillStyle=color;
+    const s=String(text).toUpperCase(); const chars=s.split('');
+    let w=0; chars.forEach(ch=>{ w+=g.measureText(ch).width+track; });
+    let cx = align==='right' ? x-w : (align==='center'? x-w/2 : x);
+    chars.forEach(ch=>{ g.fillText(ch,cx,y); cx+=g.measureText(ch).width+track; });
+    return w;
+  }
+
+  PAL(i){ const P=[
+    {light:'#8FA0C4',base:'#4C5B85',dark:'#1B2138',band:'#C6D2EC',halo:'#7F94C8'},
+    {light:'#D9B98C',base:'#9C7449',dark:'#2E2018',band:'#F0DCBC',halo:'#C79A62'},
+    {light:'#8FC7B6',base:'#3F7A6E',dark:'#132A2A',band:'#CFEFE3',halo:'#63A695'},
+    {light:'#C6A0C9',base:'#7A5580',dark:'#241831',band:'#EBD5F0',halo:'#9C74A8'},
+    {light:'#C9C3B4',base:'#6E6A5E',dark:'#1E1D1A',band:'#EDE7D8',halo:'#9A9484'}
+  ]; return P[(i||0)%P.length]; }
+  SKINS(){ return [
+    {n:'Pearl',fill:'#F3EEE2',glow:'#F3EEE2',trail:'#F3EEE2'},
+    {n:'Ember',fill:'#FF8A5B',glow:'#FF5E2E',trail:'#FFB07A'},
+    {n:'Verdigris',fill:'#7FD1C1',glow:'#4FB5A2',trail:'#A9E4D9'},
+    {n:'Amethyst',fill:'#C79BFF',glow:'#9B6BFF',trail:'#DCC2FF'},
+    {n:'Solar flare',fill:'#FFE066',glow:'#FFC01F',trail:'#FFEFA8'},
+    {n:'Voidwalker',fill:'#2A2440',glow:'#8F7BE0',trail:'#6E5FA8',rim:'#BFA8FF'},
+    {n:'Comet',fill:'#BFE9FF',glow:'#7FD0FF',trail:'#DFF4FF'},
+    {n:'Lantern',fill:'#FFC98A',glow:'#FF9E3D',trail:'#FFE0BC'},
+    {n:'Eclipse',fill:'#141018',glow:'#FF9E6B',trail:'#4A2C22',rim:'#FFB98F'}
+  ]; }
+  SKY(i){ return ['#222638','#18223E','#121C36','#1C1436','#261430','#2C1424','#0A0B12'][Math.max(0,Math.min(6,i))]; }
+
+  flare(g,x,y,len,col,a){
+    const gl=g.createRadialGradient(x,y,0,x,y,len*0.7);
+    gl.addColorStop(0,this.rgba(col,a*0.55)); gl.addColorStop(1,this.rgba(col,0));
+    g.fillStyle=gl; g.beginPath(); g.arc(x,y,len*0.7,0,6.2832); g.fill();
+    g.lineWidth=1;
+    const h=g.createLinearGradient(x-len,y,x+len,y);
+    h.addColorStop(0,this.rgba(col,0)); h.addColorStop(.5,this.rgba(col,a)); h.addColorStop(1,this.rgba(col,0));
+    g.strokeStyle=h; g.beginPath(); g.moveTo(x-len,y); g.lineTo(x+len,y); g.stroke();
+    const v=g.createLinearGradient(x,y-len,x,y+len);
+    v.addColorStop(0,this.rgba(col,0)); v.addColorStop(.5,this.rgba(col,a)); v.addColorStop(1,this.rgba(col,0));
+    g.strokeStyle=v; g.beginPath(); g.moveTo(x,y-len); g.lineTo(x,y+len); g.stroke();
+  }
+  bg(g,w,h,sky,seed,t,o){
+    o=o||{};
+    g.fillStyle=sky||'#0A0B12'; g.fillRect(0,0,w,h);
+    const R=this.rnd(seed);
+    if(o.dust!==0){
+      const hues=['#3A2F5A','#4A3550','#2E3A5C','#5A3F35']; const n=o.dust||2;
+      for(let i=0;i<n;i++){
+        const x=R()*w, y=R()*h, rr=(0.45+R()*0.5)*Math.max(w,h), c=hues[(seed+i)%4];
+        const gr=g.createRadialGradient(x,y,0,x,y,rr);
+        gr.addColorStop(0,this.rgba(c,(o.dustA||0.16))); gr.addColorStop(.6,this.rgba(c,(o.dustA||0.16)*0.3)); gr.addColorStop(1,this.rgba(c,0));
+        g.fillStyle=gr; g.fillRect(0,0,w,h);
+      }
+    }
+    if(o.stars!==0){
+      const cols=['#F3EEE2','#BFE9FF','#FFD9A8','#C9C3E6'];
+      const n=Math.round(w*h/1500*(o.density||1));
+      for(let i=0;i<n;i++){
+        const x=R()*w, y=R()*h, s=R(), rr=0.35+s*s*1.5, col=cols[Math.floor(R()*4)];
+        let a=0.20+R()*0.60; if(R()<0.25) a*=0.62+0.38*Math.sin(t*1.1+i);
+        g.fillStyle=this.rgba(col,a); g.beginPath(); g.arc(x,y,rr,0,6.2832); g.fill();
+        if(R()<(o.flares===0?0:0.03)) this.flare(g,x,y,6+R()*10,col,a*0.9);
+      }
+    }
+  }
+  planet(g,cx,cy,r,p,t,seed,o){
+    o=o||{};
+    const hg=g.createRadialGradient(cx,cy,r*0.92,cx,cy,r*1.40);
+    hg.addColorStop(0,this.rgba(p.halo,0.28)); hg.addColorStop(.45,this.rgba(p.halo,0.10)); hg.addColorStop(1,this.rgba(p.halo,0));
+    g.fillStyle=hg; g.beginPath(); g.arc(cx,cy,r*1.40,0,6.2832); g.fill();
+    g.save(); g.beginPath(); g.arc(cx,cy,r,0,6.2832); g.clip();
+    const lg=g.createRadialGradient(cx-r*0.36,cy-r*0.40,r*0.06,cx-r*0.10,cy-r*0.10,r*1.35);
+    lg.addColorStop(0,p.light); lg.addColorStop(.42,p.base); lg.addColorStop(1,p.dark);
+    g.fillStyle=lg; g.fillRect(cx-r,cy-r,r*2,r*2);
+    const R=this.rnd(seed); const nb=3+Math.floor(R()*3);
+    for(let i=0;i<nb;i++){
+      const yy=cy+(R()*1.7-0.85)*r, ry=r*(0.05+R()*0.11), sp=0.10+R()*0.16, al=0.05+R()*0.05;
+      g.fillStyle=this.rgba(p.band,al);
+      g.beginPath(); g.ellipse(cx+Math.sin(t*sp+i)*r*0.03, yy, r*1.05, ry, 0,0,6.2832); g.fill();
+    }
+    const tg=g.createRadialGradient(cx-r*0.45,cy-r*0.50,r*0.15,cx-r*0.45,cy-r*0.50,r*2.05);
+    tg.addColorStop(0,'rgba(6,6,12,0)'); tg.addColorStop(.52,'rgba(6,6,12,0.18)'); tg.addColorStop(1,'rgba(6,6,12,0.84)');
+    g.fillStyle=tg; g.fillRect(cx-r,cy-r,r*2,r*2);
+    g.restore();
+    g.lineWidth=Math.max(1,r*0.035); g.strokeStyle=this.rgba(o.rim||p.light,0.85);
+    g.beginPath(); g.arc(cx,cy,r-g.lineWidth/2,Math.PI*0.95,Math.PI*1.62); g.stroke();
+    g.lineWidth=1; g.strokeStyle=this.rgba('#D9AC4B',0.22);
+    g.beginPath(); g.arc(cx,cy,r+0.5,0,6.2832); g.stroke();
+  }
+  ring(g,cx,cy,r,mode,t,col){
+    g.save();
+    if(mode==='distant'){ g.setLineDash([5,9]); g.lineWidth=1; g.strokeStyle=this.rgba('#463D5E',0.95); g.beginPath(); g.arc(cx,cy,r,0,6.2832); g.stroke(); g.restore(); return; }
+    const c=col||(mode==='target'?'#F3EEE2':'#D9AC4B');
+    const pulse=mode==='target'?0.62+0.38*(0.5+0.5*Math.sin(t*2.2)):1;
+    if(mode==='target'){ g.lineWidth=6; g.strokeStyle=this.rgba(c,0.06*pulse); g.beginPath(); g.arc(cx,cy,r,0,6.2832); g.stroke(); }
+    g.lineWidth=1.25; g.strokeStyle=this.rgba(c,mode==='target'?pulse:0.92);
+    g.beginPath(); g.arc(cx,cy,r,0,6.2832); g.stroke();
+    if(mode==='current'){
+      for(let i=0;i<24;i++){
+        const a=i/24*6.2832-Math.PI/2, long=i%6===0, l=long?11:5.5;
+        g.lineWidth=long?1.4:1; g.strokeStyle=this.rgba(c,long?0.95:0.55);
+        g.beginPath(); g.moveTo(cx+Math.cos(a)*r,cy+Math.sin(a)*r); g.lineTo(cx+Math.cos(a)*(r+l),cy+Math.sin(a)*(r+l)); g.stroke();
+      }
+    }
+    g.restore();
+  }
+  trav(g,x,y,ang,s,r,skin){
+    const gl=g.createRadialGradient(x,y,0,x,y,r*4.2);
+    const peak=skin.rim?0.70:0.55;
+    gl.addColorStop(0,this.rgba(skin.glow,peak)); gl.addColorStop(.4,this.rgba(skin.glow,peak*0.3)); gl.addColorStop(1,this.rgba(skin.glow,0));
+    g.fillStyle=gl; g.beginPath(); g.arc(x,y,r*4.2,0,6.2832); g.fill();
+    g.save(); g.translate(x,y); g.rotate(ang);
+    g.beginPath(); g.ellipse(0,0,r*(1+s),r/(1+s*0.75),0,0,6.2832);
+    g.fillStyle=skin.fill; g.fill();
+    if(skin.rim){ g.lineWidth=1.4; g.strokeStyle=skin.rim; g.stroke(); }
+    g.restore();
+  }
+  trail(g,pts,w0,col){
+    const n=pts.length; if(n<3) return;
+    const L=[],Rr=[];
+    for(let i=0;i<n;i++){
+      const p=pts[i], q=pts[Math.min(i+1,n-1)], v=pts[Math.max(i-1,0)];
+      let dx=q.x-v.x, dy=q.y-v.y; const m=Math.hypot(dx,dy)||1; dx/=m; dy/=m;
+      const w=w0*Math.pow(1-i/n,1.3);
+      L.push({x:p.x-dy*w,y:p.y+dx*w}); Rr.push({x:p.x+dy*w,y:p.y-dx*w});
+    }
+    g.beginPath(); g.moveTo(L[0].x,L[0].y);
+    for(let i=1;i<n;i++) g.lineTo(L[i].x,L[i].y);
+    for(let i=n-1;i>=0;i--) g.lineTo(Rr[i].x,Rr[i].y);
+    g.closePath();
+    const lg=g.createLinearGradient(pts[0].x,pts[0].y,pts[n-1].x,pts[n-1].y);
+    lg.addColorStop(0,this.rgba(col,0.55)); lg.addColorStop(1,this.rgba(col,0));
+    g.fillStyle=lg; g.fill();
+  }
+  hzColors(hc){ return hc? {fill:'#FFD666',stroke:'#120D14',lw:3,shade:0.5} : {fill:'#DD5B4C',stroke:'#3A100C',lw:1,shade:1}; }
+  spike(g,cx,cy,r,rot,C){
+    const n=11; g.beginPath();
+    for(let i=0;i<n*2;i++){ const a=rot+i/(n*2)*6.2832, rr=r*(i%2?0.60:1); const x=cx+Math.cos(a)*rr, y=cy+Math.sin(a)*rr; i?g.lineTo(x,y):g.moveTo(x,y); }
+    g.closePath(); g.fillStyle=C.fill; g.fill();
+    g.lineWidth=C.lw; g.strokeStyle=C.stroke; g.stroke();
+    const sg=g.createRadialGradient(cx-r*0.3,cy-r*0.35,0,cx,cy,r);
+    sg.addColorStop(0,'rgba(255,255,255,'+(0.18*C.shade)+')'); sg.addColorStop(1,'rgba(0,0,0,'+(0.30*C.shade)+')');
+    g.fillStyle=sg; g.fill();
+  }
+  blade(g,cx,cy,len,th,rot,C){
+    g.save(); g.translate(cx,cy); g.rotate(rot);
+    const h=th/2, tip=len/2, tp=len*0.12;
+    g.beginPath(); g.moveTo(-tip,0); g.lineTo(-tip+tp,-h); g.lineTo(tip-tp,-h); g.lineTo(tip,0); g.lineTo(tip-tp,h); g.lineTo(-tip+tp,h); g.closePath();
+    g.fillStyle=C.fill; g.fill(); g.lineWidth=C.lw; g.strokeStyle=C.stroke; g.stroke();
+    const sg=g.createLinearGradient(0,-h,0,h);
+    sg.addColorStop(0,'rgba(255,255,255,'+(0.20*C.shade)+')'); sg.addColorStop(1,'rgba(0,0,0,'+(0.28*C.shade)+')');
+    g.fillStyle=sg; g.fill();
+    g.beginPath(); g.arc(0,0,th*0.85,0,6.2832); g.fillStyle=C.fill; g.fill(); g.strokeStyle=C.stroke; g.stroke();
+    g.restore();
+  }
+  rock(g,cx,cy,r,rot,seed,C){
+    const R=this.rnd(seed), n=9, pts=[];
+    g.save(); g.translate(cx,cy); g.rotate(rot);
+    for(let i=0;i<n;i++){ const a=i/n*6.2832, rr=r*(0.72+R()*0.38); pts.push([Math.cos(a)*rr,Math.sin(a)*rr]); }
+    g.beginPath(); pts.forEach((p,i)=> i?g.lineTo(p[0],p[1]):g.moveTo(p[0],p[1])); g.closePath();
+    g.fillStyle=C.fill; g.fill(); g.lineWidth=C.lw; g.strokeStyle=C.stroke; g.stroke();
+    const sg=g.createLinearGradient(-r,-r,r,r);
+    sg.addColorStop(0,'rgba(255,255,255,'+(0.16*C.shade)+')'); sg.addColorStop(1,'rgba(0,0,0,'+(0.36*C.shade)+')');
+    g.fillStyle=sg; g.fill();
+    g.lineWidth=1; g.strokeStyle='rgba(0,0,0,'+(0.30*C.shade)+')';
+    for(let i=0;i<3;i++){ const a=R()*6.2832, d=R()*r*0.5, rr=r*(0.12+R()*0.14); g.beginPath(); g.arc(Math.cos(a)*d,Math.sin(a)*d,rr,0.6,3.9); g.stroke(); }
+    g.restore();
+  }
+  frame(g,w,h){
+    g.strokeStyle=this.rgba('#D9AC4B',0.35); g.lineWidth=1; const L=14, m=8;
+    const cs=[[m,m,1,1],[w-m,m,-1,1],[m,h-m,1,-1],[w-m,h-m,-1,-1]];
+    cs.forEach(c=>{ g.beginPath(); g.moveTo(c[0]+c[2]*L,c[1]); g.lineTo(c[0],c[1]); g.lineTo(c[0],c[1]+c[3]*L); g.stroke(); });
+  }
+
+  r_sky(g,w,h,d,t){ this.bg(g,w,h,d.sky,+d.seed,t,{dust:3,density:1.1}); g.strokeStyle='rgba(255,255,255,.07)'; g.lineWidth=1; g.strokeRect(.5,.5,w-1,h-1); }
+
+  r_planet(g,w,h,d,t){
+    this.bg(g,w,h,d.sky,+d.seed,t,{dust:2,density:.7});
+    this.planet(g,w/2,h/2,Math.min(w,h)*0.30,this.PAL(+d.pal),t,+d.seed);
+  }
+
+  r_anatomy(g,w,h,d,t){
+    this.bg(g,w,h,d.sky,+d.seed,t,{dust:2,density:.6});
+    const cx=w*0.32, cy=h*0.52, r=Math.min(w,h)*0.30;
+    this.planet(g,cx,cy,r,this.PAL(0),t,+d.seed);
+    const marks=[
+      [-0.62,-0.80,'Atmospheric halo','r · 1.40 → 0'],
+      [-0.30,-0.94,'Rim light','arc 0.95π → 1.62π'],
+      [0.14,-0.42,'Core light','(−0.36r, −0.40r)'],
+      [0.34,0.30,'Surface bands','ellipse, α .05–.10'],
+      [-0.10,0.88,'Terminator','→ rgba(6,6,12,.84)']
+    ];
+    g.lineWidth=1;
+    marks.forEach((m,i)=>{
+      const px=cx+m[0]*r*1.15, py=cy+m[1]*r*1.15;
+      const lx=w*0.62, ly=h*0.20+i*(h*0.15);
+      g.strokeStyle=this.rgba('#D9AC4B',0.45);
+      g.beginPath(); g.moveTo(px,py); g.lineTo(lx-26,ly); g.lineTo(lx,ly); g.stroke();
+      g.fillStyle=this.rgba('#D9AC4B',0.9); g.beginPath(); g.arc(px,py,2,0,6.2832); g.fill();
+      this.tlabel(g,lx+10,ly+3.5,m[2],9,'#F3EEE2',1.6);
+      g.font='400 10px ui-monospace,Menlo,monospace'; g.fillStyle='#6F6982'; g.fillText(m[3],lx+10,ly+18);
+    });
+    this.frame(g,w,h);
+  }
+
+  r_ring(g,w,h,d,t){
+    this.bg(g,w,h,d.sky,+d.seed,t,{dust:2,density:.7});
+    const cx=w/2, cy=h/2, r=Math.min(w,h)*0.34;
+    this.planet(g,cx,cy,Math.min(w,h)*0.14,this.PAL(+d.seed%5),t,+d.seed);
+    this.ring(g,cx,cy,r,d.mode,t);
+    if(d.mode==='current'){ const a=-Math.PI*0.35; this.trav(g,cx+Math.cos(a)*r,cy+Math.sin(a)*r,a+Math.PI/2,0,5,this.SKINS()[0]); }
+  }
+
+  r_tickspec(g,w,h,d,t){
+    this.bg(g,w,h,d.sky,7,t,{dust:1,density:.4,flares:0});
+    const cx=w*0.40, cy=h/2, r=Math.min(w,h)*0.33;
+    g.lineWidth=1.25; g.strokeStyle=this.rgba('#D9AC4B',0.92);
+    g.beginPath(); g.arc(cx,cy,r,0,6.2832); g.stroke();
+    for(let i=0;i<24;i++){
+      const a=i/24*6.2832-Math.PI/2, long=i%6===0, l=long?11:5.5;
+      g.lineWidth=long?1.4:1; g.strokeStyle=this.rgba('#D9AC4B',long?0.95:0.55);
+      g.beginPath(); g.moveTo(cx+Math.cos(a)*r,cy+Math.sin(a)*r); g.lineTo(cx+Math.cos(a)*(r+l),cy+Math.sin(a)*(r+l)); g.stroke();
+    }
+    g.save(); g.setLineDash([2,4]); g.strokeStyle=this.rgba('#F3EEE2',0.30); g.lineWidth=1;
+    g.beginPath(); g.moveTo(cx,cy); g.lineTo(cx,cy-r-24); g.stroke();
+    const a15=-Math.PI/2+6.2832/24;
+    g.beginPath(); g.moveTo(cx,cy); g.lineTo(cx+Math.cos(a15)*(r+24),cy+Math.sin(a15)*(r+24)); g.stroke();
+    g.restore();
+    g.strokeStyle=this.rgba('#F3EEE2',0.45); g.lineWidth=1;
+    g.beginPath(); g.arc(cx,cy,r*0.55,-Math.PI/2,a15); g.stroke();
+    this.tlabel(g,cx+16,cy-r*0.60,'15°',9,'#F3EEE2',1.4);
+    this.tlabel(g,w-18,h*0.26,'24 divisions',9,'#F3EEE2',2,'right');
+    this.tlabel(g,w-18,h*0.40,'every 6th · 11px',9,'#D9AC4B',2,'right');
+    this.tlabel(g,w-18,h*0.54,'others · 5.5px',9,'#8C86A0',2,'right');
+    this.tlabel(g,w-18,h*0.68,'origin −π/2',9,'#8C86A0',2,'right');
+    this.frame(g,w,h);
+  }
+
+  r_flight(g,w,h,d,t,c){
+    this.bg(g,w,h,d.sky,+d.seed,t,{dust:2,density:.8});
+    const A={x:w*0.18,y:h*0.70,r:34,rr:78}, B={x:w*0.74,y:h*0.34,r:30,rr:70};
+    this.planet(g,A.x,A.y,A.r,this.PAL(0),t,3); this.ring(g,A.x,A.y,A.rr,'current',t);
+    this.planet(g,B.x,B.y,B.r,this.PAL(2),t,9); this.ring(g,B.x,B.y,B.rr,'target',t);
+    const P=2.9, ph=(t%P)/P;
+    const p0={x:A.x+A.rr*Math.cos(-0.55),y:A.y+A.rr*Math.sin(-0.55)};
+    const p2={x:B.x+B.rr*Math.cos(Math.PI*0.86),y:B.y+B.rr*Math.sin(Math.PI*0.86)};
+    const p1={x:(p0.x+p2.x)/2,y:Math.min(p0.y,p2.y)-90};
+    let x,y,s,ang;
+    const fly=Math.min(1,ph/0.72);
+    const bez=(u)=>({x:(1-u)*(1-u)*p0.x+2*(1-u)*u*p1.x+u*u*p2.x, y:(1-u)*(1-u)*p0.y+2*(1-u)*u*p1.y+u*u*p2.y});
+    const cur=bez(fly), nxt=bez(Math.min(1,fly+0.02));
+    x=cur.x; y=cur.y; ang=Math.atan2(nxt.y-cur.y,nxt.x-cur.x);
+    if(ph<0.72){ s=0.18+0.27*Math.sin(Math.PI*fly); if(!c._h||c._reset){ } c._hist=c._hist||[]; c._hist.unshift({x:x,y:y}); if(c._hist.length>26) c._hist.pop(); }
+    else if(ph<0.80){ s=-0.35*(1-(ph-0.72)/0.08); c._hist=c._hist||[]; if(c._hist.length) c._hist.pop(); }
+    else { s=0; c._hist=[]; const oa=Math.PI*0.86+(ph-0.80)*2.2; x=B.x+B.rr*Math.cos(oa); y=B.y+B.rr*Math.sin(oa); ang=oa+Math.PI/2; }
+    if(c._hist&&c._hist.length>2) this.trail(g,c._hist,6,'#F3EEE2');
+    this.trav(g,x,y,ang,s,6,this.SKINS()[0]);
+    this.frame(g,w,h);
+  }
+
+  r_travstate(g,w,h,d,t){
+    this.bg(g,w,h,d.sky,4,t,{dust:1,density:.6,flares:0});
+    const cx=w/2, cy=h/2, sk=this.SKINS()[0];
+    if(d.state==='stretch'){
+      const pts=[]; for(let i=0;i<24;i++) pts.push({x:cx+22-i*4.2, y:cy+10+i*2.0});
+      this.trail(g,pts,6,'#F3EEE2');
+      this.trav(g,cx+22,cy+10,Math.atan2(-2.0,4.2)+Math.PI,0.42,8,sk);
+    } else if(d.state==='squash'){
+      this.trav(g,cx,cy,0,-0.35,8,sk);
+      g.strokeStyle=this.rgba('#D9AC4B',0.55); g.lineWidth=1.25;
+      g.beginPath(); g.arc(cx,cy+16,54,Math.PI*1.18,Math.PI*1.82); g.stroke();
+    } else {
+      this.trav(g,cx,cy,0,0,8,sk);
+    }
+  }
+
+  r_hazard(g,w,h,d,t){
+    this.bg(g,w,h,d.sky,+d.seed,t,{dust:2,density:.7});
+    const C=this.hzColors(d.hc==='1'), cx=w/2, cy=h/2, R=Math.min(w,h)*0.34;
+    if(d.kind==='moon'){
+      this.planet(g,cx,cy,Math.min(w,h)*0.15,this.PAL(2),t,+d.seed);
+      this.ring(g,cx,cy,R,'current',t);
+      const a=t*0.55;
+      this.spike(g,cx+Math.cos(a)*R,cy+Math.sin(a)*R,15,t*0.5,C);
+    } else if(d.kind==='blade'){
+      this.planet(g,cx,cy,Math.min(w,h)*0.20,this.PAL(3),t,+d.seed);
+      this.ring(g,cx,cy,R,'current',t);
+      const pr=Math.min(w,h)*0.20;
+      this.blade(g,cx,cy,(R+16)*2,pr*0.10,t*0.8,C);
+    } else {
+      this.ring(g,cx,cy,R*0.55,'distant',t);
+      this.ring(g,cx,cy,R,'distant',t);
+      const dx=Math.sin(t*0.35)*w*0.22, dy=Math.cos(t*0.27)*h*0.10;
+      this.rock(g,cx+dx,cy+dy,26,t*0.25,+d.seed,C);
+    }
+  }
+
+  r_special(g,w,h,d,t){
+    this.bg(g,w,h,d.sky,+d.seed,t,{dust:2,density:.7});
+    const cx=w/2, cy=h/2, r=Math.min(w,h)*0.34, pr=Math.min(w,h)*0.14;
+    this.planet(g,cx,cy,pr,this.PAL(+d.seed%5),t,+d.seed);
+    if(d.kind==='gold'){
+      const col='#FFD666';
+      const gl=g.createRadialGradient(cx,cy,r*0.86,cx,cy,r*1.16);
+      gl.addColorStop(0,this.rgba(col,0)); gl.addColorStop(.5,this.rgba(col,0.10)); gl.addColorStop(1,this.rgba(col,0));
+      g.fillStyle=gl; g.beginPath(); g.arc(cx,cy,r*1.16,0,6.2832); g.fill();
+      g.lineWidth=1.5; g.strokeStyle=this.rgba(col,0.95); g.beginPath(); g.arc(cx,cy,r,0,6.2832); g.stroke();
+      g.lineWidth=1; g.strokeStyle=this.rgba(col,0.40); g.beginPath(); g.arc(cx,cy,r-4,0,6.2832); g.stroke();
+      for(let i=0;i<24;i++){
+        const a=i/24*6.2832-Math.PI/2, long=i%6===0;
+        if(long){
+          const x=cx+Math.cos(a)*(r+9), y=cy+Math.sin(a)*(r+9);
+          g.fillStyle=this.rgba(col,0.9); g.beginPath(); g.arc(x,y,4.2,0,6.2832); g.fill();
+          g.lineWidth=1; g.strokeStyle=this.rgba('#8E5A10',0.8); g.beginPath(); g.arc(x,y,2,0,6.2832); g.stroke();
+        } else {
+          g.lineWidth=1; g.strokeStyle=this.rgba(col,0.5);
+          g.beginPath(); g.moveTo(cx+Math.cos(a)*r,cy+Math.sin(a)*r); g.lineTo(cx+Math.cos(a)*(r+5),cy+Math.sin(a)*(r+5)); g.stroke();
+        }
+      }
+    } else if(d.kind==='sling'){
+      const col='#7FD1C1';
+      g.lineWidth=1.4; g.strokeStyle=this.rgba(col,0.92); g.beginPath(); g.arc(cx,cy,r,0,6.2832); g.stroke();
+      for(let i=0;i<8;i++){
+        const a=i/8*6.2832+t*0.35;
+        g.save(); g.translate(cx+Math.cos(a)*r,cy+Math.sin(a)*r); g.rotate(a+Math.PI/2);
+        g.lineWidth=1.6; g.strokeStyle=this.rgba(col,0.95); g.lineJoin='miter';
+        g.beginPath(); g.moveTo(-5,-6); g.lineTo(0,0); g.lineTo(-5,6); g.stroke();
+        g.restore();
+      }
+      for(let i=0;i<3;i++){
+        const a0=t*0.9+i*2.1;
+        g.lineWidth=2; g.strokeStyle=this.rgba(col,0.30);
+        g.beginPath(); g.arc(cx,cy,r-8-i*3,a0,a0+0.5); g.stroke();
+      }
+    } else {
+      const col='#C79BFF';
+      g.lineWidth=1.3; g.strokeStyle=this.rgba(col,0.92);
+      g.beginPath(); g.arc(cx,cy,r+3,-Math.PI/2,Math.PI/2); g.stroke();
+      g.beginPath(); g.arc(cx,cy,r-3,Math.PI/2,Math.PI*1.5); g.stroke();
+      for(let i=0;i<24;i++){
+        const a=i/24*6.2832-Math.PI/2, outw=i%2===0;
+        g.lineWidth=1; g.strokeStyle=this.rgba(col,0.55);
+        const r0=r+(outw?0:-6), r1=r+(outw?6:0);
+        g.beginPath(); g.moveTo(cx+Math.cos(a)*r0,cy+Math.sin(a)*r0); g.lineTo(cx+Math.cos(a)*r1,cy+Math.sin(a)*r1); g.stroke();
+      }
+      [[0,1],[Math.PI,-1]].forEach(p=>{
+        const a=p[0]+Math.sin(t*1.1)*0.05, rr=r+3*p[1];
+        g.save(); g.translate(cx+Math.cos(a)*rr,cy+Math.sin(a)*rr); g.rotate(a+(p[1]>0?Math.PI/2:-Math.PI/2));
+        g.fillStyle=this.rgba(col,0.95);
+        g.beginPath(); g.moveTo(0,-7); g.lineTo(7,4); g.lineTo(-7,4); g.closePath(); g.fill();
+        g.restore();
+      });
+    }
+  }
+
+  r_boss(g,w,h,d,t){
+    this.bg(g,w,h,d.sky,+d.seed,t,{dust:3,density:.9});
+    const cx=w/2, cy=h/2, r=Math.min(w,h)*0.26;
+    const pul=1+0.06*Math.sin(t*1.9);
+    for(let k=0;k<2;k++){
+      const hg=g.createRadialGradient(cx,cy,r*1.05,cx,cy,r*(1.55+k*0.25)*pul);
+      hg.addColorStop(0,this.rgba('#DD3B2E',0.30-k*0.14)); hg.addColorStop(1,this.rgba('#DD3B2E',0));
+      g.fillStyle=hg; g.beginPath(); g.arc(cx,cy,r*(1.55+k*0.25)*pul,0,6.2832); g.fill();
+    }
+    g.save(); g.beginPath(); g.arc(cx,cy,r,0,6.2832); g.clip();
+    const lg=g.createRadialGradient(cx-r*0.36,cy-r*0.40,r*0.06,cx-r*0.10,cy-r*0.10,r*1.35);
+    lg.addColorStop(0,'#FFC978'); lg.addColorStop(.45,'#C4622C'); lg.addColorStop(1,'#8E3A22');
+    g.fillStyle=lg; g.fillRect(cx-r,cy-r,r*2,r*2);
+    [[-0.28,0.10],[0.34,0.07]].forEach((b,i)=>{
+      g.fillStyle='rgba(60,16,10,0.12)';
+      g.beginPath(); g.ellipse(cx+Math.sin(t*0.14+i)*r*0.02, cy+b[0]*r, r*1.05, r*b[1],0,0,6.2832); g.fill();
+    });
+    const tg=g.createRadialGradient(cx-r*0.45,cy-r*0.50,r*0.15,cx-r*0.45,cy-r*0.50,r*2.05);
+    tg.addColorStop(0,'rgba(20,6,6,0)'); tg.addColorStop(.55,'rgba(20,6,6,0.20)'); tg.addColorStop(1,'rgba(20,6,6,0.80)');
+    g.fillStyle=tg; g.fillRect(cx-r,cy-r,r*2,r*2);
+    g.restore();
+    g.lineWidth=Math.max(1.5,r*0.030); g.strokeStyle=this.rgba('#FFD9A8',0.85);
+    g.beginPath(); g.arc(cx,cy,r-g.lineWidth/2,Math.PI*0.95,Math.PI*1.62); g.stroke();
+    const ri=r*1.42, ro=r*1.60;
+    g.lineWidth=1.25; g.strokeStyle=this.rgba('#D9AC4B',0.9);
+    g.beginPath(); g.arc(cx,cy,ri,0,6.2832); g.stroke();
+    g.beginPath(); g.arc(cx,cy,ro,0,6.2832); g.stroke();
+    for(let i=0;i<48;i++){
+      const a=i/48*6.2832-Math.PI/2, long=i%6===0;
+      g.lineWidth=long?1.4:1; g.strokeStyle=this.rgba('#D9AC4B',long?0.95:0.40);
+      const r0=long?ri:ro-(ro-ri)*0.45;
+      g.beginPath(); g.moveTo(cx+Math.cos(a)*r0,cy+Math.sin(a)*r0); g.lineTo(cx+Math.cos(a)*ro,cy+Math.sin(a)*ro); g.stroke();
+    }
+    g.save(); g.setLineDash([3,5]); g.lineWidth=1; g.strokeStyle=this.rgba('#F3EEE2',0.30);
+    g.beginPath(); g.arc(cx,cy,r/2,0,6.2832); g.stroke(); g.restore();
+    this.tlabel(g,cx+r/2+8,cy-r/2+6,'standard planet r',8,this.rgba('#F3EEE2',0.5),1.6);
+    const a=-Math.PI*0.30;
+    this.trav(g,cx+Math.cos(a)*ro,cy+Math.sin(a)*ro,a+Math.PI/2,0,6,this.SKINS()[0]);
+    this.frame(g,w,h);
+  }
+
+  r_skin(g,w,h,d,t){
+    const sk=this.SKINS()[+d.i];
+    this.bg(g,w,h,'#151827',(+d.i)*7+3,t,{dust:1,dustA:0.10,density:.5,flares:0});
+    const pts=[]; const n=26;
+    for(let i=0;i<n;i++){
+      const u=i/(n-1);
+      pts.push({x:w*0.74-u*w*0.56, y:h*0.42+Math.sin(u*2.4)*h*0.20});
+    }
+    this.trail(g,pts,5.5,sk.trail);
+    const p=pts[0], q=pts[1];
+    this.trav(g,p.x,p.y,Math.atan2(p.y-q.y,p.x-q.x),0.28,7,sk);
+    g.strokeStyle='rgba(255,255,255,.07)'; g.lineWidth=1; g.strokeRect(.5,.5,w-1,h-1);
+  }
+
+  r_layer(g,w,h,d,t){
+    const k=d.kind, s=+d.seed;
+    if(k==='stars') this.bg(g,w,h,d.sky,s,t,{dust:0,density:1.3,flares:0});
+    else if(k==='flare'){ this.bg(g,w,h,d.sky,s,t,{dust:0,density:.3,flares:0});
+      this.flare(g,w*0.32,h*0.42,26,'#BFE9FF',0.85); this.flare(g,w*0.66,h*0.62,18,'#FFD9A8',0.75); this.flare(g,w*0.50,h*0.22,12,'#F3EEE2',0.6); }
+    else if(k==='dust') this.bg(g,w,h,d.sky,s,t,{dust:3,stars:0});
+    else this.bg(g,w,h,d.sky,s,t,{dust:3,density:1.2});
+    g.strokeStyle='rgba(255,255,255,.07)'; g.lineWidth=1; g.strokeRect(.5,.5,w-1,h-1);
+  }
+
+  r_scene(g,w,h,d,t,c){
+    const lvl=parseInt(this.props.sceneLevel||'5',10);
+    const hc=(this.props.hazardMode||'Vermilion').indexOf('Amber')===0;
+    const C=this.hzColors(hc);
+    this.bg(g,w,h,this.SKY(lvl-1),+d.seed+lvl,t,{dust:3,density:1.0});
+    this.ring(g,w*0.30,h*0.20,140,'distant',t); this.ring(g,w*0.62,h*0.86,120,'distant',t);
+    const boss={x:w*0.845,y:h*0.50,r:74};
+    const pul=1+0.06*Math.sin(t*1.9);
+    for(let k=0;k<2;k++){ const hg=g.createRadialGradient(boss.x,boss.y,boss.r*1.05,boss.x,boss.y,boss.r*(1.55+k*0.25)*pul);
+      hg.addColorStop(0,this.rgba('#DD3B2E',0.26-k*0.12)); hg.addColorStop(1,this.rgba('#DD3B2E',0)); g.fillStyle=hg;
+      g.beginPath(); g.arc(boss.x,boss.y,boss.r*(1.55+k*0.25)*pul,0,6.2832); g.fill(); }
+    g.save(); g.beginPath(); g.arc(boss.x,boss.y,boss.r,0,6.2832); g.clip();
+    const bl=g.createRadialGradient(boss.x-boss.r*0.36,boss.y-boss.r*0.40,boss.r*0.06,boss.x,boss.y,boss.r*1.35);
+    bl.addColorStop(0,'#FFC978'); bl.addColorStop(.45,'#C4622C'); bl.addColorStop(1,'#8E3A22');
+    g.fillStyle=bl; g.fillRect(boss.x-boss.r,boss.y-boss.r,boss.r*2,boss.r*2);
+    const bt=g.createRadialGradient(boss.x-boss.r*0.45,boss.y-boss.r*0.5,boss.r*0.15,boss.x-boss.r*0.45,boss.y-boss.r*0.5,boss.r*2.05);
+    bt.addColorStop(0,'rgba(20,6,6,0)'); bt.addColorStop(1,'rgba(20,6,6,0.8)'); g.fillStyle=bt; g.fillRect(boss.x-boss.r,boss.y-boss.r,boss.r*2,boss.r*2);
+    g.restore();
+    g.lineWidth=2.2; g.strokeStyle=this.rgba('#FFD9A8',0.85);
+    g.beginPath(); g.arc(boss.x,boss.y,boss.r-1.1,Math.PI*0.95,Math.PI*1.62); g.stroke();
+    const bri=boss.r*1.42, bro=boss.r*1.60;
+    g.lineWidth=1.25; g.strokeStyle=this.rgba('#D9AC4B',0.9);
+    g.beginPath(); g.arc(boss.x,boss.y,bri,0,6.2832); g.stroke();
+    g.beginPath(); g.arc(boss.x,boss.y,bro,0,6.2832); g.stroke();
+    for(let i=0;i<48;i++){ const a=i/48*6.2832-Math.PI/2, long=i%6===0;
+      g.lineWidth=long?1.3:1; g.strokeStyle=this.rgba('#D9AC4B',long?0.9:0.35);
+      const r0=long?bri:bro-(bro-bri)*0.45;
+      g.beginPath(); g.moveTo(boss.x+Math.cos(a)*r0,boss.y+Math.sin(a)*r0); g.lineTo(boss.x+Math.cos(a)*bro,boss.y+Math.sin(a)*bro); g.stroke(); }
+    const gold={x:w*0.615,y:h*0.72,r:32,rr:78};
+    this.planet(g,gold.x,gold.y,gold.r,this.PAL(1),t,21);
+    g.lineWidth=1.5; g.strokeStyle=this.rgba('#FFD666',0.95); g.beginPath(); g.arc(gold.x,gold.y,gold.rr,0,6.2832); g.stroke();
+    g.lineWidth=1; g.strokeStyle=this.rgba('#FFD666',0.4); g.beginPath(); g.arc(gold.x,gold.y,gold.rr-4,0,6.2832); g.stroke();
+    for(let i=0;i<6;i++){ const a=i/6*6.2832-Math.PI/2, x=gold.x+Math.cos(a)*(gold.rr+9), y=gold.y+Math.sin(a)*(gold.rr+9);
+      g.fillStyle=this.rgba('#FFD666',0.9); g.beginPath(); g.arc(x,y,4,0,6.2832); g.fill(); }
+    const A={x:w*0.145,y:h*0.62,r:44,rr:108}, B={x:w*0.385,y:h*0.34,r:36,rr:88};
+    this.planet(g,A.x,A.y,A.r,this.PAL(0),t,5); this.ring(g,A.x,A.y,A.rr,'current',t);
+    this.planet(g,B.x,B.y,B.r,this.PAL(2),t,13); this.ring(g,B.x,B.y,B.rr,'target',t);
+    const ma=t*0.5; this.spike(g,A.x+Math.cos(ma)*A.rr,A.y+Math.sin(ma)*A.rr,15,t*0.5,C);
+    this.blade(g,B.x,B.y,(B.rr+14)*2,B.r*0.10,t*0.7,C);
+    this.rock(g,w*0.50+Math.sin(t*0.3)*26,h*0.20+Math.cos(t*0.24)*14,24,t*0.2,27,C);
+    const P=3.2, ph=(t%P)/P, fly=Math.min(1,ph/0.8);
+    const p0={x:A.x+A.rr*Math.cos(-0.7),y:A.y+A.rr*Math.sin(-0.7)};
+    const p2={x:B.x+B.rr*Math.cos(Math.PI*0.80),y:B.y+B.rr*Math.sin(Math.PI*0.80)};
+    const p1={x:(p0.x+p2.x)/2,y:Math.min(p0.y,p2.y)-70};
+    const bez=(u)=>({x:(1-u)*(1-u)*p0.x+2*(1-u)*u*p1.x+u*u*p2.x,y:(1-u)*(1-u)*p0.y+2*(1-u)*u*p1.y+u*u*p2.y});
+    const cur=bez(fly), nxt=bez(Math.min(1,fly+0.02));
+    c._hist=c._hist||[]; if(ph<0.8){ c._hist.unshift({x:cur.x,y:cur.y}); if(c._hist.length>26) c._hist.pop(); } else if(c._hist.length) c._hist.pop();
+    if(c._hist.length>2) this.trail(g,c._hist,6,'#F3EEE2');
+    const s = ph<0.8 ? 0.18+0.27*Math.sin(Math.PI*fly) : -0.35*(1-(ph-0.8)/0.2);
+    this.trav(g,cur.x,cur.y,Math.atan2(nxt.y-cur.y,nxt.x-cur.x),s,6.5,this.SKINS()[0]);
+    const names=['Calm Belt','Drift','Moons','Blades','Debris','Collapse','The Deep'];
+    g.fillStyle=this.rgba('#F3EEE2',0.92);
+    g.font='400 42px "Iowan Old Style","Palatino Linotype",Palatino,serif';
+    g.fillText('1 4 8 2 0',34,64);
+    this.tlabel(g,34,86,'score',9,this.rgba('#F3EEE2',0.45),2.6);
+    this.tlabel(g,w-34,44,'depth '+String(lvl).padStart(2,'0')+' · '+names[lvl-1],10,'#D9AC4B',2.8,'right');
+    g.fillStyle=this.rgba('#FFD666',0.95); g.font='400 24px "Iowan Old Style",Palatino,serif';
+    const cw=g.measureText('37').width; g.fillText('37',w-34-cw,78);
+    g.beginPath(); g.arc(w-34-cw-16,70,6,0,6.2832); g.fillStyle=this.rgba('#FFD666',0.9); g.fill();
+    g.lineWidth=1; g.strokeStyle=this.rgba('#8E5A10',0.8); g.beginPath(); g.arc(w-34-cw-16,70,2.6,0,6.2832); g.stroke();
+    this.frame(g,w,h);
+  }
+}
+</script>
+</body>
+</html>

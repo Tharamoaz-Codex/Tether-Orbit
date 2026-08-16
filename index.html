@@ -447,7 +447,7 @@ const SPAWN_PROTECT= 3.0;   // seconds you cannot be killed after a respawn, unt
 const START_Y      = 540;   // world y of the first planet — fixed, not derived from
                             // screen height, so absolute world coordinates (and any
                             // ghost recorded in them) match across devices
-const DAILY_SALT   = 'v1';  // bump when difficulty tuning changes, so an old day's
+const DAILY_SALT   = 'v2';  // bump when difficulty tuning changes, so an old day's
                             // seed is never silently reinterpreted by a new build
 const GHOST_DT     = .05;   // ghost sample interval in SECONDS. Sampling per frame
                             // meant a 60Hz recording replayed at double speed on a
@@ -615,17 +615,20 @@ const BOOSTERS = {
 const SLOW_BOOST_T = 45;   // seconds of 80% speed
 const SLOW_BOOST_S = .80;
 
+/* fill · glow · trail, straight from the art sheet. Near-black skins carry a
+   `rim` — the dot is read from its edge and halo, not its fill, so those also
+   push the glow peak from .55 to .70 (see drawTraveller). */
 const SKINS = {
-  pearl:    {name:'Pearl',      price:0,   fill:'#F3EEE2', glow:'rgba(243,238,226,.85)', trail:'#D9AC4B'},
-  ember:    {name:'Ember',      price:150, fill:'#FF8A5B', glow:'rgba(255,138,91,.90)',  trail:'#FF5E3A'},
-  verdigris:{name:'Verdigris',  price:250, fill:'#7FD1C1', glow:'rgba(127,209,193,.90)', trail:'#3FA694'},
-  amethyst: {name:'Amethyst',   price:350, fill:'#C79BFF', glow:'rgba(199,155,255,.90)', trail:'#8E5FD1'},
-  solar:    {name:'Solar flare',price:500, fill:'#FFE066', glow:'rgba(255,224,102,.95)', trail:'#FFB020'},
-  voidwalk: {name:'Voidwalker', price:700, fill:'#2A2440', glow:'rgba(168,128,255,.85)', trail:'#6B4FA8'},
+  pearl:    {name:'Pearl',      price:0,   fill:'#F3EEE2', glow:'#F3EEE2', trail:'#F3EEE2'},
+  ember:    {name:'Ember',      price:150, fill:'#FF8A5B', glow:'#FF5E2E', trail:'#FFB07A'},
+  verdigris:{name:'Verdigris',  price:250, fill:'#7FD1C1', glow:'#4FB5A2', trail:'#A9E4D9'},
+  amethyst: {name:'Amethyst',   price:350, fill:'#C79BFF', glow:'#9B6BFF', trail:'#DCC2FF'},
+  solar:    {name:'Solar flare',price:500, fill:'#FFE066', glow:'#FFC01F', trail:'#FFEFA8'},
+  voidwalk: {name:'Voidwalker', price:700, fill:'#2A2440', glow:'#8F7BE0', trail:'#6E5FA8', rim:'#BFA8FF'},
   // earned, not bought — a different motivation from spending
-  comet:    {name:'Comet',      ringReq:150,  fill:'#BFE9FF', glow:'rgba(191,233,255,.95)', trail:'#5FB8E8'},
-  lantern:  {name:'Lantern',    ringReq:600,  fill:'#FFC98A', glow:'rgba(255,201,138,.95)', trail:'#E0863A'},
-  eclipse:  {name:'Eclipse',    bossReq:6,    fill:'#141018', glow:'rgba(255,255,255,.9)',  trail:'#C9BFE0'}
+  comet:    {name:'Comet',      ringReq:150,  fill:'#BFE9FF', glow:'#7FD0FF', trail:'#DFF4FF'},
+  lantern:  {name:'Lantern',    ringReq:600,  fill:'#FFC98A', glow:'#FF9E3D', trail:'#FFE0BC'},
+  eclipse:  {name:'Eclipse',    bossReq:6,    fill:'#141018', glow:'#FF9E6B', trail:'#4A2C22', rim:'#FFB98F'}
 };
 
 // Special rings. One per world at most, never on a world that already has a hazard.
@@ -685,44 +688,65 @@ let palFrom=null, palTo=null, palT=1;   // resolved lazily: PALETTES is declared
 let ripples=[], popT=0, nebulae=[];
 
 /* ================= world ================= */
+/* Art sheet calls for one star per 1500px². Over a 520-wide strip that is ~400
+   stars, and drawing that many arcs every frame alongside the new planet stack
+   is not affordable on a low-end phone. So the field is baked once into a
+   sprite and only the flare stars stay live — which is where all the visible
+   life is anyway, since a static star and a twinkling one look identical until
+   it twinkles. */
+const STAR_STRIP = 1200;      // world units the baked strip covers before wrapping
+let starSpr = null;
+
 function makeStars(){
-  stars=[];
-  for(let i=0;i<180;i++){
-    const hero = Math.random()<.05;
-    stars.push({
-      x:Math.random()*VW, y:Math.random()*2400,
-      r: hero ? 1.5+Math.random()*.9 : Math.random()*1.1+.2,
-      p: Math.random()*.55+.18,
-      a: hero ? .85 : Math.random()*.45+.12,
-      c: Math.random()<.22 ? 'warm' : Math.random()<.3 ? 'cool' : 'star',
-      hero, tw: Math.random()*TAU
-    });
-  }
-  // Soft dust clouds. Four radial gradients a frame is cheap, and a flat
-  // background is most of what makes a canvas game look unfinished.
-  nebulae=[];
-  for(let i=0;i<5;i++) nebulae.push({
-    x: Math.random()*VW, y: Math.random()*2600,
-    r: 160+Math.random()*220, p: .07+Math.random()*.06,
-    a: .05+Math.random()*.07, warm: Math.random()<.4
+  const R = Math.random;
+  try{
+    const c = document.createElement('canvas');
+    c.width = VW; c.height = STAR_STRIP;
+    const g = c.getContext('2d');
+    const n = Math.round(VW*STAR_STRIP/1500);
+    for(let i=0;i<n;i++){
+      const s = R(), rr = 0.35 + s*s*1.5;          // r = 0.35 + s²·1.5
+      g.fillStyle = rgbaH(STAR_COLS[(R()*4)|0], 0.20 + R()*0.60);
+      g.beginPath(); g.arc(R()*VW, R()*STAR_STRIP, rr, 0, TAU); g.fill();
+    }
+    starSpr = c;
+  }catch(e){ starSpr = null; }
+
+  // the ~3% that carry a cross flare, plus the twinklers
+  stars = [];
+  for(let i=0;i<26;i++) stars.push({
+    x:R()*VW, y:R()*STAR_STRIP, p:R()*.55+.18,
+    len:6+R()*10, col:STAR_COLS[(R()*4)|0],
+    a:.55+R()*.35, tw:R()*TAU, flare:R()<.5
+  });
+
+  // Dust: 2–3 broad radial gradients under the stars, on slower parallax.
+  nebulae = [];
+  const nd = 2 + ((R()*2)|0);
+  for(let i=0;i<nd;i++) nebulae.push({
+    x:R()*VW, y:R()*2600,
+    r:(0.45+R()*0.5)*Math.max(VW,900),
+    p:.07+R()*.06, a:.16, hue:DUST_HUES[(R()*4)|0]
   });
 }
 
 // Dust clouds are baked to sprites once per palette. Building a radial
 // gradient every frame is the single most expensive thing a canvas game
 // can do casually, and these never change shape.
+// Dust hues are fixed by the art sheet rather than derived from the sky, so
+// this bakes once per run instead of being rebuilt on every level change.
 function buildNebulae(){
-  const P = palMix();
   for(const n of nebulae){
+    if(n.spr) continue;
     try{
       const c=document.createElement('canvas');
       const d=Math.max(2, Math.ceil(n.r*2));
       c.width=d; c.height=d;
       const g2=c.getContext('2d');
-      const col=n.warm?P.warmD:P.coolD;
       const gr=g2.createRadialGradient(n.r,n.r,0,n.r,n.r,n.r);
-      gr.addColorStop(0, rgba(col,n.a));
-      gr.addColorStop(1, rgba(col,0));
+      gr.addColorStop(0,  rgbaH(n.hue, n.a));
+      gr.addColorStop(.6, rgbaH(n.hue, n.a*0.3));
+      gr.addColorStop(1,  rgbaH(n.hue, 0));
       g2.fillStyle=gr; g2.fillRect(0,0,d,d);
       n.spr=c;
     }catch(e){ n.spr=null; }
@@ -752,46 +776,62 @@ function levelFor(idx){ return Math.floor(idx/RINGS_PER_LVL)+1; }
    The sky, the stars and the ordinary worlds shift with depth. Semantic
    colours — gold rings, red hazards, boss orange, skin colours — deliberately
    do NOT shift, so meaning stays constant while the world changes. */
-function hsl2rgb(h,sl,l){
+const hex2rgb = h => { const s=h.replace('#',''); const n=parseInt(s.length===3?s.split('').map(x=>x+x).join(''):s,16);
+                       return [n>>16&255, n>>8&255, n&255]; };
+const mix=(a,b,t)=>[a[0]+(b[0]-a[0])*t, a[1]+(b[1]-a[1])*t, a[2]+(b[2]-a[2])*t];
+const rgba=(c,a)=>'rgba('+(c[0]|0)+','+(c[1]|0)+','+(c[2]|0)+','+a+')';
+const rgbaH=(hex,a)=>rgba(hex2rgb(hex),a);
+
+// Seven authored depths. Only the SKY moves with depth — stars, dust, planet
+// bodies and every semantic colour are fixed, so meaning never drifts.
+const SKY_LADDER = ['#222638','#18223E','#121C36','#1C1436','#261430','#2C1424','#0A0B12'].map(hex2rgb);
+const SKY_FLOOR  = hex2rgb('#060710');
+
+function rgb2hsl(c){
+  const r=c[0]/255,g=c[1]/255,b=c[2]/255, mx=Math.max(r,g,b), mn=Math.min(r,g,b);
+  let h=0, s=0; const l=(mx+mn)/2, d=mx-mn;
+  if(d){
+    s = l>.5 ? d/(2-mx-mn) : d/(mx+mn);
+    h = mx===r ? ((g-b)/d+(g<b?6:0)) : mx===g ? (b-r)/d+2 : (r-g)/d+4;
+    h*=60;
+  }
+  return [h,s,l];
+}
+function hsl2rgb(h,s,l){
   h=((h%360)+360)%360/360;
-  const f=(n)=>{ const k=(n+h*12)%12, a=sl*Math.min(l,1-l);
+  const f=n=>{ const k=(n+h*12)%12, a=s*Math.min(l,1-l);
     return Math.round(255*(l-a*Math.max(-1,Math.min(k-3,Math.min(9-k,1))))); };
   return [f(0),f(8),f(4)];
 }
-const PALETTES = [
-  {bg:[34,38,56],  star:[206,218,238], warm:[244,220,158], warmD:[176,132,52], cool:[150,140,182], coolD:[82,72,112]},
-  {bg:[24,34,62],  star:[190,212,240], warm:[240,212,140], warmD:[168,124,46], cool:[132,132,186], coolD:[68,66,110]},
-  {bg:[18,28,54],  star:[176,206,236], warm:[236,206,136], warmD:[160,118,44], cool:[122,126,184], coolD:[60,60,104]},
-  {bg:[28,20,54],  star:[196,180,240], warm:[238,200,146], warmD:[162,112,52], cool:[142,120,196], coolD:[68,54,110]},
-  {bg:[38,20,48],  star:[224,178,224], warm:[240,192,150], warmD:[166,106,58], cool:[160,116,178], coolD:[80,50,98]},
-  {bg:[44,20,36],  star:[236,178,190], warm:[242,186,148], warmD:[172,100,54], cool:[172,112,146], coolD:[88,48,78]},
-  {bg:[10,11,18],  star:[168,196,214], warm:[236,208,150], warmD:[150,110,50], cool:[110,118,150], coolD:[48,52,74]}
+/* Past depth 07 the ladder cycles: hue +18° per lap, lightness × 0.92, floored
+   at #060710 so it darkens toward a limit instead of to black. */
+function skyFor(n){
+  const N = SKY_LADDER.length;
+  if(n <= N) return SKY_LADDER[n-1];
+  const lap = Math.floor((n-1)/N), idx = (n-1)%N;
+  const [h,s,l] = rgb2hsl(SKY_LADDER[idx]);
+  const out = hsl2rgb(h + 18*lap, s, l*Math.pow(0.92,lap));
+  return [Math.max(out[0],SKY_FLOOR[0]), Math.max(out[1],SKY_FLOOR[1]), Math.max(out[2],SKY_FLOOR[2])];
+}
+function lapFor(n){ return Math.floor((n-1)/SKY_LADDER.length); }
+const paletteFor = skyFor;                 // depth -> sky, crossfaded by palT
+function palMix(){ return mix(palFrom || SKY_LADDER[0], palTo || SKY_LADDER[0], palT); }
+
+/* Planet bodies. Seed picks the palette, so no two neighbours read identically
+   and a given seed always produces the same world. */
+const PAL = [
+  {light:'#8FA0C4',base:'#4C5B85',dark:'#1B2138',band:'#C6D2EC',halo:'#7F94C8'}, // slate
+  {light:'#D9B98C',base:'#9C7449',dark:'#2E2018',band:'#F0DCBC',halo:'#C79A62'}, // sand
+  {light:'#8FC7B6',base:'#3F7A6E',dark:'#132A2A',band:'#CFEFE3',halo:'#63A695'}, // verdigris
+  {light:'#C6A0C9',base:'#7A5580',dark:'#241831',band:'#EBD5F0',halo:'#9C74A8'}, // plum
+  {light:'#C9C3B4',base:'#6E6A5E',dark:'#1E1D1A',band:'#EDE7D8',halo:'#9A9484'}  // stone
 ];
-function paletteFor(n){
-  if(n<=PALETTES.length) return PALETTES[n-1];
-  const k=n-PALETTES.length, h=(k*47)%360;
-  return {
-    bg:   hsl2rgb(h,.32,.11),
-    star: hsl2rgb(h+40,.34,.80),
-    warm: hsl2rgb(h+22,.62,.74),
-    warmD:hsl2rgb(h+22,.58,.38),
-    cool: hsl2rgb(h+195,.28,.60),
-    coolD:hsl2rgb(h+195,.26,.28)
-  };
-}
-const mix=(a,b,t)=>[a[0]+(b[0]-a[0])*t, a[1]+(b[1]-a[1])*t, a[2]+(b[2]-a[2])*t];
-const rgba=(c,a)=>'rgba('+(c[0]|0)+','+(c[1]|0)+','+(c[2]|0)+','+a+')';
-function palMix(){
-  const a = palFrom || PALETTES[0], b = palTo || PALETTES[0];
-  return {
-    bg:   mix(a.bg,   b.bg,   palT),
-    star: mix(a.star, b.star, palT),
-    warm: mix(a.warm, b.warm, palT),
-    warmD:mix(a.warmD,b.warmD,palT),
-    cool: mix(a.cool, b.cool, palT),
-    coolD:mix(a.coolD,b.coolD,palT)
-  };
-}
+const BOSS_PAL  = {light:'#FFC978', base:'#C4622C', dark:'#8E3A22', halo:'#DD3B2E', rim:'#FFD9A8'};
+const STAR_COLS = ['#F3EEE2','#BFE9FF','#FFD9A8','#C9C3E6'];
+const DUST_HUES = ['#3A2F5A','#4A3550','#2E3A5C','#5A3F35'];
+const BRASS     = '#D9AC4B';               // your ring
+const CREAM     = '#F3EEE2';               // the ring you are aiming at
+const DISTANT   = '#463D5E';
 
 const DEEP_A = ['Far','Cold','Black','Hollow','Silent','Broken','Outer','Last','Pale','Drowned'];
 const DEEP_B = ['Reach','Verge','Expanse','Drift','Threshold','Meridian','Span','Rim','Shelf','Gyre'];
@@ -815,6 +855,26 @@ function overT(i){ return clamp((i - RAMP)/70, 0, 1); }
 function diffT(i){
   if(i < RINGS_PER_LVL) return (i/RINGS_PER_LVL)*.16;
   return Math.min(.16 + ((i-RINGS_PER_LVL)/(RAMP-RINGS_PER_LVL))*.84, 1);
+}
+
+// 3–5 clipped ellipses, ry 0.05–0.16r, α .05–.10, drifting ±0.03r on a sine.
+function bandsFor(R){
+  const n = 3 + ((R()*3)|0), out = [];
+  for(let i=0;i<n;i++) out.push({ y:R()*1.7-0.85, ry:0.05+R()*0.11, sp:0.10+R()*0.16, a:0.05+R()*0.05 });
+  return out;
+}
+/* 9-gon with radius jitter. The sheet specifies 0.72–1.10, but anything past
+   1.0 would draw the rock wider than the circle it actually collides on, so the
+   profile is normalised to put the widest vertex exactly on the hitbox. */
+function rockShape(R){
+  const pts=[]; let mx=0;
+  for(let i=0;i<9;i++){ const v=0.72+R()*0.38; mx=Math.max(mx,v); pts.push(v); }
+  return pts.map(v=>v/mx);
+}
+function rockCraters(R){
+  const out=[];
+  for(let i=0;i<3;i++) out.push({ a:R()*TAU, d:R()*0.5, r:0.12+R()*0.14 });
+  return out;
 }
 
 function makePlanet(i, prev){
@@ -848,10 +908,10 @@ function makePlanet(i, prev){
     rate: boss ? rate*bRate : rate,
     margin: boss ? oR*bMul+20 : margin,
     drift:0, phase:R()*TAU, dSpeed:rr(.55,1.05),
-    tint: R(),
-    bandPhase: R()*TAU,
-    bandSpeed: rr(.10,.28)*sign(),
-    bands: 1 + ((R()*3)|0),
+    // Individuality per the art sheet: seed picks the body palette, the band
+    // count and the band offsets. Never clone a band layout.
+    palIdx: (R()*PAL.length)|0,
+    bands: bandsFor(R),
     moons:[], bar:null, decay:false, special:null, boss
   };
   p.x0 = clamp(p.x0, p.margin, Math.max(p.margin, VW-p.margin));
@@ -888,7 +948,8 @@ function makePlanet(i, prev){
         y: (p.y + prev.y)/2 + rr(-22,22),
         x: rr(30, Math.max(31,VW-30)),
         vx: rr(55,120)*sign(),
-        r: lerp(11,8,t), forIdx:i
+        r: lerp(11,8,t), forIdx:i,
+        shape: rockShape(R), craters: rockCraters(R), rot: R()*TAU, spin: rr(-.5,.5)
       });
     }
   }
@@ -940,7 +1001,7 @@ function newRun(m){
   usedRevive=false; usedDouble=false; trail=[]; sparks=[]; clock=0;
   flawless=true; slowT=0; nearCool=0; recordShown=false; spawnProtect=0;
   shieldUp=false; magnetOn=false; slowRunT=0;
-  palFrom=PALETTES[0]; palTo=PALETTES[0]; palT=1; ripples=[]; popT=0;
+  palFrom=SKY_LADDER[0]; palTo=SKY_LADDER[0]; palT=1; ripples=[]; popT=0;
   buildNebulae();
   for(const k in armed){
     if(armed[k] && inv[k]>0){
@@ -1161,8 +1222,9 @@ function captureRing(next){
   const nl = levelFor(rings);
   if(nl!==level){
     level=nl; showBanner(level); SFX.level();
-    palFrom = palMix(); palTo = paletteFor(level); palT = 0;
-    setTimeout(buildNebulae, 900);            // recolour mid-transition
+    palFrom = palMix(); palTo = skyFor(level); palT = 0;
+    // dust no longer needs recolouring on a depth change — its hues are fixed
+    // by the art sheet, so the sprites built at run start stay correct
     if(flawless) bump('flawlessLevel', level, true);
   }
   if(bestRings>0 && rings===bestRings+1 && !recordShown){
@@ -1403,7 +1465,7 @@ function restoreRun(d){
   graceT = 1.2;                       // never resume straight into a blade
   mode='orbit'; paused=false;
 
-  palFrom = paletteFor(level); palTo = paletteFor(level); palT = 1;
+  palFrom = skyFor(level); palTo = skyFor(level); palT = 1;
   makeStars(); buildNebulae();
   paintHud();
 }
@@ -1633,318 +1695,518 @@ function step(dt){
   shake *= Math.pow(.001, dt);
 }
 
-/* ================= render ================= */
+/* ================= render =================
+   Geometry, colour and layer order follow the art reference sheet: an antique
+   brass orrery in deep space. Everything is arcs, gradients and polygons — no
+   bitmaps — so it stays sharp at any device scale. */
+
 function ring(x,y,r,col,w,dash){
   ctx.save(); ctx.strokeStyle=col; ctx.lineWidth=w;
   if(dash) ctx.setLineDash(dash);
   ctx.beginPath(); ctx.arc(x,y,r,0,TAU); ctx.stroke(); ctx.restore();
 }
 
-/* ============ hazard styling ============
-   Two separate jobs here.
-
-   HAZ handles CONTRAST: cbMode swaps the red for amber. That is what the store
-   has been advertising; the renderer simply never read the setting, so the
-   toggle saved, reloaded and did nothing.
-
-   The spikes handle SHAPE, and they are drawn in BOTH modes deliberately. Hue
-   is the one channel roughly 8% of men cannot rely on, so "will this kill me?"
-   has to be answerable with colour discarded entirely. Planets are smooth
-   discs; hazards are spiked. That reads instantly, and in sunlight. */
+/* ---- hazards ----
+   Two jobs, kept apart. HAZ is CONTRAST: cbMode swaps vermilion for amber and
+   triples the outline weight. The silhouettes are SHAPE, and they are identical
+   in both palettes on purpose — hue is the channel ~8% of men cannot rely on,
+   so "will this kill me?" has to survive colour being discarded entirely.
+   Worlds are smooth discs; hazards are spiked, hexagonal or cratered. */
 function haz(){
   return cbMode
-    // A strong orange rather than a soft amber: it stays clear of the brass
-    // used by rings and the HUD, and it is far brighter than the red against
-    // this background, which is what protanopes lose first.
-    ? {fill:'#FF8C1A', glow:'rgba(255,140,26,.90)', line:'rgba(255,140,26,.95)',
-       soft:'rgba(255,140,26,.38)', edge:'#FFE9C4', w:1.8}
-    : {fill:'#DD5B4C', glow:'rgba(221,91,76,.70)', line:'rgba(221,91,76,.90)',
-       soft:'rgba(221,91,76,.30)', edge:'rgba(0,0,0,.35)', w:1};
+    ? {fill:'#FFD666', stroke:'#120D14', lw:3, shade:.5}
+    : {fill:'#DD5B4C', stroke:'#3A100C', lw:1, shade:1};
 }
 
-// The solid core is exactly the collision radius; the spikes are stroked
-// OUTSIDE it. The silhouette shouts "hazard" without ever overstating the
-// hitbox — overstating it is what makes a death feel stolen.
-function drawMoon(x,y,r,HZ){
-  ctx.save();
-  ctx.strokeStyle=HZ.line; ctx.lineWidth=Math.max(1.2, r*.32); ctx.lineCap='round';
+// Moon — 11-point star, inner radius 0.60·r. Points sit exactly on the
+// collision radius and valleys inside it, so the silhouette never overstates
+// the hitbox; a death that looks like a miss is the worst thing an arcade game
+// can do.
+function drawSpike(x,y,r,rot,C){
+  const n=11;
   ctx.beginPath();
-  for(let i=0;i<8;i++){
-    const a=i*TAU/8 + Math.PI/8;
-    ctx.moveTo(x+Math.cos(a)*r*.90, y+Math.sin(a)*r*.90);
-    ctx.lineTo(x+Math.cos(a)*r*1.60, y+Math.sin(a)*r*1.60);
+  for(let i=0;i<n*2;i++){
+    const a=rot+i/(n*2)*TAU, rr=r*(i%2?0.60:1);
+    const px2=x+Math.cos(a)*rr, py2=y+Math.sin(a)*rr;
+    i?ctx.lineTo(px2,py2):ctx.moveTo(px2,py2);
   }
-  ctx.stroke();
-  ctx.shadowColor=HZ.glow; ctx.shadowBlur=10;
-  ctx.fillStyle=HZ.fill;
-  ctx.beginPath(); ctx.arc(x,y,r,0,TAU); ctx.fill();
-  ctx.shadowBlur=0;
-  ctx.lineWidth=HZ.w; ctx.strokeStyle=HZ.edge;
-  ctx.beginPath(); ctx.arc(x,y,r,0,TAU); ctx.stroke();
+  ctx.closePath();
+  ctx.fillStyle=C.fill; ctx.fill();
+  ctx.lineWidth=C.lw; ctx.strokeStyle=C.stroke; ctx.stroke();
+  const sg=ctx.createRadialGradient(x-r*.3,y-r*.35,0,x,y,r);
+  sg.addColorStop(0,'rgba(255,255,255,'+(.18*C.shade)+')');
+  sg.addColorStop(1,'rgba(0,0,0,'+(.30*C.shade)+')');
+  ctx.fillStyle=sg; ctx.fill();
+}
+
+// Blade — hexagonal bar, tips tapered 12%, hub at 0.85·thickness. Half-length
+// is orbitR + 16 so the tips clear the ring the player rides.
+function drawBlade(x,y,len,th,rot,C){
+  ctx.save(); ctx.translate(x,y); ctx.rotate(rot);
+  const h=th/2, tip=len/2, tp=len*0.12;
+  ctx.beginPath();
+  ctx.moveTo(-tip,0); ctx.lineTo(-tip+tp,-h); ctx.lineTo(tip-tp,-h);
+  ctx.lineTo(tip,0);  ctx.lineTo(tip-tp,h);   ctx.lineTo(-tip+tp,h);
+  ctx.closePath();
+  ctx.fillStyle=C.fill; ctx.fill();
+  ctx.lineWidth=C.lw; ctx.strokeStyle=C.stroke; ctx.stroke();
+  const sg=ctx.createLinearGradient(0,-h,0,h);
+  sg.addColorStop(0,'rgba(255,255,255,'+(.20*C.shade)+')');
+  sg.addColorStop(1,'rgba(0,0,0,'+(.28*C.shade)+')');
+  ctx.fillStyle=sg; ctx.fill();
+  ctx.beginPath(); ctx.arc(0,0,th*.85,0,TAU);
+  ctx.fillStyle=C.fill; ctx.fill();
+  ctx.lineWidth=C.lw; ctx.strokeStyle=C.stroke; ctx.stroke();
   ctx.restore();
 }
 
-function draw(){
-  const P = palMix();
-  const HZ = haz();          // resolved once a frame; every hazard draws from it
-  const sky = ctx.createLinearGradient(0,0,0,VH);
-  sky.addColorStop(0, rgba(mix(P.bg,[0,0,0],.35),1));
-  sky.addColorStop(1, rgba(P.bg,1));
-  ctx.fillStyle=sky; ctx.fillRect(0,0,VW,VH);
-  ctx.save();
-  const sx = shake>.3 ? (Math.random()-.5)*shake : 0;
-  const sy = shake>.3 ? (Math.random()-.5)*shake : 0;
-  ctx.translate(sx,sy);
+// Asteroid — 9-gon with a seeded profile plus three crater arcs.
+function drawRock(b,C){
+  const r=b.r, sh=b.shape||[1,1,1,1,1,1,1,1,1];
+  ctx.save(); ctx.translate(b.x,b.y); ctx.rotate(b.rot||0);
+  ctx.beginPath();
+  for(let i=0;i<sh.length;i++){
+    const a=i/sh.length*TAU, rr=r*sh[i];
+    const x=Math.cos(a)*rr, y=Math.sin(a)*rr;
+    i?ctx.lineTo(x,y):ctx.moveTo(x,y);
+  }
+  ctx.closePath();
+  ctx.fillStyle=C.fill; ctx.fill();
+  ctx.lineWidth=C.lw; ctx.strokeStyle=C.stroke; ctx.stroke();
+  const sg=ctx.createLinearGradient(-r,-r,r,r);
+  sg.addColorStop(0,'rgba(255,255,255,'+(.16*C.shade)+')');
+  sg.addColorStop(1,'rgba(0,0,0,'+(.36*C.shade)+')');
+  ctx.fillStyle=sg; ctx.fill();
+  ctx.lineWidth=1; ctx.strokeStyle='rgba(0,0,0,'+(.30*C.shade)+')';
+  for(const cr of (b.craters||[])){
+    ctx.beginPath();
+    ctx.arc(Math.cos(cr.a)*cr.d*r, Math.sin(cr.a)*cr.d*r, r*cr.r, 0.6, 3.9);
+    ctx.stroke();
+  }
+  ctx.restore();
+}
 
+/* ---- worlds ----
+   Six layers: halo, gradient body, drifting bands, terminator, rim light,
+   engraved outline. Four gradients per world per frame is the classic way to
+   melt a canvas game, so everything except the drifting bands is baked once per
+   (palette, radius) and blitted. */
+const planetSprites = new Map();
+function planetSprite(pi, r, boss){
+  const key=(boss?'b':'p')+pi+'@'+Math.round(r*2)/2;
+  let s=planetSprites.get(key);
+  if(s) return s;
+  const P = boss ? BOSS_PAL : PAL[pi%PAL.length];
+  const pad = Math.ceil(r*1.40)+2, d = pad*2;
+  const c = document.createElement('canvas');
+  c.width=d; c.height=d;
+  const g = c.getContext('2d');
+  const cx=pad, cy=pad;
+
+  const hg=g.createRadialGradient(cx,cy,r*0.92,cx,cy,r*1.40);
+  hg.addColorStop(0,rgbaH(P.halo,.28)); hg.addColorStop(.45,rgbaH(P.halo,.10)); hg.addColorStop(1,rgbaH(P.halo,0));
+  g.fillStyle=hg; g.beginPath(); g.arc(cx,cy,r*1.40,0,TAU); g.fill();
+
+  g.save(); g.beginPath(); g.arc(cx,cy,r,0,TAU); g.clip();
+  const lg=g.createRadialGradient(cx-r*.36,cy-r*.40,r*.06,cx-r*.10,cy-r*.10,r*1.35);
+  lg.addColorStop(0,P.light); lg.addColorStop(boss?.45:.42,P.base); lg.addColorStop(1,P.dark);
+  g.fillStyle=lg; g.fillRect(cx-r,cy-r,r*2,r*2);
+  const dk = boss ? '20,6,6' : '6,6,12';
+  const tg=g.createRadialGradient(cx-r*.45,cy-r*.50,r*.15,cx-r*.45,cy-r*.50,r*2.05);
+  tg.addColorStop(0,'rgba('+dk+',0)');
+  tg.addColorStop(.52,'rgba('+dk+',0.18)');
+  tg.addColorStop(1,'rgba('+dk+',0.84)');
+  g.fillStyle=tg; g.fillRect(cx-r,cy-r,r*2,r*2);
+  g.restore();
+
+  g.lineWidth=Math.max(1,r*(boss?.030:.035));
+  g.strokeStyle=rgbaH(boss?BOSS_PAL.rim:P.light,.85);
+  g.beginPath(); g.arc(cx,cy,r-g.lineWidth/2,Math.PI*.95,Math.PI*1.62); g.stroke();
+  g.lineWidth=1; g.strokeStyle=rgbaH(BRASS,.22);
+  g.beginPath(); g.arc(cx,cy,r+0.5,0,TAU); g.stroke();
+
+  if(planetSprites.size>40) planetSprites.clear();
+  s={c,pad}; planetSprites.set(key,s);
+  return s;
+}
+
+function drawWorld(p, sky){
+  const boss=!!p.boss, r=p.r, pi=p.palIdx||0;
+  if(boss){
+    // pulsing halo, two passes — the boss announces itself before you read it
+    const pul=1+0.06*Math.sin(clock*1.9);
+    for(let k=0;k<2;k++){
+      const rr=r*(1.55+k*0.25)*pul;
+      const hg=ctx.createRadialGradient(p.x,p.y,r*1.05,p.x,p.y,rr);
+      hg.addColorStop(0,rgbaH(BOSS_PAL.halo,.30-k*.14));
+      hg.addColorStop(1,rgbaH(BOSS_PAL.halo,0));
+      ctx.fillStyle=hg; ctx.beginPath(); ctx.arc(p.x,p.y,rr,0,TAU); ctx.fill();
+    }
+  }
+  const s=planetSprite(pi,r,boss);
+  ctx.drawImage(s.c, p.x-s.pad, p.y-s.pad);
+
+  const P = boss?BOSS_PAL:PAL[pi%PAL.length];
+  ctx.save(); ctx.beginPath(); ctx.arc(p.x,p.y,r,0,TAU); ctx.clip();
+  const bands=p.bands||[];
+  for(let i=0;i<bands.length;i++){
+    const b=bands[i];
+    ctx.fillStyle=rgbaH(boss?'#3C100A':P.band, boss?b.a*2.4:b.a);
+    ctx.beginPath();
+    ctx.ellipse(p.x+Math.sin(clock*b.sp+i)*r*.03, p.y+b.y*r, r*1.05, r*b.ry, 0,0,TAU);
+    ctx.fill();
+  }
+  ctx.restore();
+
+  // aerial perspective — worlds far from the traveller wash toward the sky
+  const haze = clamp(Math.abs(p.y-py)/760,0,1)*.55;
+  if(haze>.01){
+    ctx.save(); ctx.globalAlpha=haze; ctx.fillStyle=rgba(sky,1);
+    ctx.beginPath(); ctx.arc(p.x,p.y,r+1,0,TAU); ctx.fill(); ctx.restore();
+  }
+}
+
+/* ---- rings ----
+   24 divisions from the 12 o'clock mark, 15° apart, radiating outward; every
+   6th runs double length. This is the instrument language the whole look hangs
+   on, so it is shared by ordinary, special and boss rings. */
+function ringTicks(x,y,r,col,aLong,aShort,scale){
+  const L=r*0.12*(scale||1), S=r*0.06*(scale||1);
+  for(let i=0;i<24;i++){
+    const a=i/24*TAU-Math.PI/2, long=i%6===0, l=long?L:S;
+    ctx.lineWidth=long?1.4:1;
+    ctx.strokeStyle=rgbaH(col,long?(aLong==null?.95:aLong):(aShort==null?.55:aShort));
+    ctx.beginPath();
+    ctx.moveTo(x+Math.cos(a)*r, y+Math.sin(a)*r);
+    ctx.lineTo(x+Math.cos(a)*(r+l), y+Math.sin(a)*(r+l));
+    ctx.stroke();
+  }
+}
+
+function drawRing(p, state){
+  const r=p.orbitR, x=p.x, y=p.y;
+  if(state==='distant'){
+    ctx.save(); ctx.setLineDash([5,9]); ctx.lineWidth=1;
+    ctx.strokeStyle=rgbaH(DISTANT,.95);
+    ctx.beginPath(); ctx.arc(x,y,r,0,TAU); ctx.stroke(); ctx.restore();
+    return;
+  }
+  const col = state==='target'?CREAM:BRASS;
+  const pulse = state==='target' ? 0.62+0.38*(0.5+0.5*Math.sin(clock*2.2)) : 1;
+  ctx.save();
+  if(state==='target'){
+    ctx.lineWidth=6; ctx.strokeStyle=rgbaH(col,.06*pulse);
+    ctx.beginPath(); ctx.arc(x,y,r,0,TAU); ctx.stroke();
+  }
+  ctx.lineWidth=1.25; ctx.strokeStyle=rgbaH(col,state==='target'?pulse:.92);
+  ctx.beginPath(); ctx.arc(x,y,r,0,TAU); ctx.stroke();
+  if(state==='current') ringTicks(x,y,r,col);
+  ctx.restore();
+}
+
+/* Special rings are told apart by tick LANGUAGE, not colour alone — coin discs,
+   one-way chevrons, opposed arrowheads. */
+function drawSpecialRing(p){
+  const x=p.x, y=p.y, r=p.orbitR;
+  ctx.save();
+  if(p.special==='gold'){
+    const col='#FFD666';
+    const gl=ctx.createRadialGradient(x,y,r*.86,x,y,r*1.16);
+    gl.addColorStop(0,rgbaH(col,0)); gl.addColorStop(.5,rgbaH(col,.10)); gl.addColorStop(1,rgbaH(col,0));
+    ctx.fillStyle=gl; ctx.beginPath(); ctx.arc(x,y,r*1.16,0,TAU); ctx.fill();
+    ctx.lineWidth=1.5; ctx.strokeStyle=rgbaH(col,.95);
+    ctx.beginPath(); ctx.arc(x,y,r,0,TAU); ctx.stroke();
+    ctx.lineWidth=1; ctx.strokeStyle=rgbaH(col,.40);
+    ctx.beginPath(); ctx.arc(x,y,r-4,0,TAU); ctx.stroke();
+    for(let i=0;i<24;i++){
+      const a=i/24*TAU-Math.PI/2;
+      if(i%6===0){
+        const cxx=x+Math.cos(a)*(r+r*.10), cyy=y+Math.sin(a)*(r+r*.10);
+        ctx.fillStyle=rgbaH(col,.9);
+        ctx.beginPath(); ctx.arc(cxx,cyy,Math.max(2.6,r*.05),0,TAU); ctx.fill();
+        ctx.lineWidth=1; ctx.strokeStyle=rgbaH('#8E5A10',.8);
+        ctx.beginPath(); ctx.arc(cxx,cyy,Math.max(1.2,r*.023),0,TAU); ctx.stroke();
+      } else {
+        ctx.lineWidth=1; ctx.strokeStyle=rgbaH(col,.5);
+        ctx.beginPath();
+        ctx.moveTo(x+Math.cos(a)*r, y+Math.sin(a)*r);
+        ctx.lineTo(x+Math.cos(a)*(r+r*.06), y+Math.sin(a)*(r+r*.06));
+        ctx.stroke();
+      }
+    }
+  } else if(p.special==='sling'){
+    const col='#7FD1C1';
+    ctx.lineWidth=1.4; ctx.strokeStyle=rgbaH(col,.92);
+    ctx.beginPath(); ctx.arc(x,y,r,0,TAU); ctx.stroke();
+    const k=Math.max(3.4,r*.09);
+    for(let i=0;i<8;i++){
+      const a=i/8*TAU+clock*.35;
+      ctx.save(); ctx.translate(x+Math.cos(a)*r, y+Math.sin(a)*r); ctx.rotate(a+Math.PI/2);
+      ctx.lineWidth=1.6; ctx.strokeStyle=rgbaH(col,.95); ctx.lineJoin='miter';
+      ctx.beginPath(); ctx.moveTo(-k*.83,-k); ctx.lineTo(0,0); ctx.lineTo(-k*.83,k); ctx.stroke();
+      ctx.restore();
+    }
+    for(let i=0;i<3;i++){
+      const a0=clock*.9+i*2.1;
+      ctx.lineWidth=2; ctx.strokeStyle=rgbaH(col,.30);
+      ctx.beginPath(); ctx.arc(x,y,r-r*.09-i*r*.035,a0,a0+.5); ctx.stroke();
+    }
+  } else {
+    const col='#C79BFF', off=Math.max(2,r*.035);
+    ctx.lineWidth=1.3; ctx.strokeStyle=rgbaH(col,.92);
+    ctx.beginPath(); ctx.arc(x,y,r+off,-Math.PI/2,Math.PI/2); ctx.stroke();
+    ctx.beginPath(); ctx.arc(x,y,r-off,Math.PI/2,Math.PI*1.5); ctx.stroke();
+    for(let i=0;i<24;i++){
+      const a=i/24*TAU-Math.PI/2, out=i%2===0, e=r*.07;
+      ctx.lineWidth=1; ctx.strokeStyle=rgbaH(col,.55);
+      const r0=r+(out?0:-e), r1=r+(out?e:0);
+      ctx.beginPath();
+      ctx.moveTo(x+Math.cos(a)*r0,y+Math.sin(a)*r0);
+      ctx.lineTo(x+Math.cos(a)*r1,y+Math.sin(a)*r1);
+      ctx.stroke();
+    }
+    const hd=Math.max(4,r*.09);
+    [[0,1],[Math.PI,-1]].forEach(q=>{
+      const a=q[0]+Math.sin(clock*1.1)*.05, rr=r+off*q[1];
+      ctx.save(); ctx.translate(x+Math.cos(a)*rr,y+Math.sin(a)*rr);
+      ctx.rotate(a+(q[1]>0?Math.PI/2:-Math.PI/2));
+      ctx.fillStyle=rgbaH(col,.95);
+      ctx.beginPath(); ctx.moveTo(0,-hd); ctx.lineTo(hd,hd*.6); ctx.lineTo(-hd,hd*.6);
+      ctx.closePath(); ctx.fill(); ctx.restore();
+    });
+  }
+  ctx.restore();
+}
+
+// The boss ring is a BAND, not a line: brass hairline on both edges with 48
+// ticks spanning it, every 6th full width.
+function drawBossRing(p){
+  const x=p.x, y=p.y, ri=p.orbitR, ro=p.orbitR*1.13;
+  ctx.save();
+  ctx.lineWidth=1.25; ctx.strokeStyle=rgbaH(BRASS,.9);
+  ctx.beginPath(); ctx.arc(x,y,ri,0,TAU); ctx.stroke();
+  ctx.beginPath(); ctx.arc(x,y,ro,0,TAU); ctx.stroke();
+  for(let i=0;i<48;i++){
+    const a=i/48*TAU-Math.PI/2, long=i%6===0;
+    ctx.lineWidth=long?1.4:1;
+    ctx.strokeStyle=rgbaH(BRASS,long?.95:.40);
+    const r0=long?ri:ro-(ro-ri)*0.45;
+    ctx.beginPath();
+    ctx.moveTo(x+Math.cos(a)*r0,y+Math.sin(a)*r0);
+    ctx.lineTo(x+Math.cos(a)*ro,y+Math.sin(a)*ro);
+    ctx.stroke();
+  }
+  ctx.restore();
+}
+
+/* ---- the traveller ---- */
+function drawTraveller(x,y,ang,s,r,sk,alpha){
+  const peak=(sk.rim?0.70:0.55)*(alpha==null?1:alpha);
+  const gl=ctx.createRadialGradient(x,y,0,x,y,r*4.2);
+  gl.addColorStop(0,rgbaH(sk.glow,peak));
+  gl.addColorStop(.4,rgbaH(sk.glow,peak*.3));
+  gl.addColorStop(1,rgbaH(sk.glow,0));
+  ctx.fillStyle=gl; ctx.beginPath(); ctx.arc(x,y,r*4.2,0,TAU); ctx.fill();
+  ctx.save();
+  if(alpha!=null) ctx.globalAlpha=alpha;
+  ctx.translate(x,y); ctx.rotate(ang);
+  ctx.beginPath(); ctx.ellipse(0,0,r*(1+s),r/(1+s*0.75),0,0,TAU);
+  ctx.fillStyle=sk.fill; ctx.fill();
+  if(sk.rim){ ctx.lineWidth=1.4; ctx.strokeStyle=sk.rim; ctx.stroke(); }
+  else { ctx.lineWidth=1; ctx.strokeStyle='rgba(255,255,255,.55)'; ctx.stroke(); }
+  ctx.restore();
+}
+
+// Tapered polygon rather than stacked strokes: half-width w₀·(1 − i/n)^1.3,
+// newest sample first, alpha .55 → 0 along its length.
+function drawTrail(pts,w0,col){
+  const n=pts.length; if(n<3) return;
+  const L=[],Rr=[];
+  for(let i=0;i<n;i++){
+    const p=pts[i], q=pts[Math.min(i+1,n-1)], v=pts[Math.max(i-1,0)];
+    let dx=q.x-v.x, dy=q.y-v.y; const m=Math.hypot(dx,dy)||1; dx/=m; dy/=m;
+    const w=w0*Math.pow(1-i/n,1.3);
+    L.push({x:p.x-dy*w,y:p.y+dx*w}); Rr.push({x:p.x+dy*w,y:p.y-dx*w});
+  }
+  ctx.beginPath(); ctx.moveTo(L[0].x,L[0].y);
+  for(let i=1;i<n;i++) ctx.lineTo(L[i].x,L[i].y);
+  for(let i=n-1;i>=0;i--) ctx.lineTo(Rr[i].x,Rr[i].y);
+  ctx.closePath();
+  const lg=ctx.createLinearGradient(pts[0].x,pts[0].y,pts[n-1].x,pts[n-1].y);
+  lg.addColorStop(0,rgbaH(col,.55)); lg.addColorStop(1,rgbaH(col,0));
+  ctx.fillStyle=lg; ctx.fill();
+}
+
+function starFlare(x,y,len,col,a){
+  const gl=ctx.createRadialGradient(x,y,0,x,y,len*.7);
+  gl.addColorStop(0,rgbaH(col,a*.55)); gl.addColorStop(1,rgbaH(col,0));
+  ctx.fillStyle=gl; ctx.beginPath(); ctx.arc(x,y,len*.7,0,TAU); ctx.fill();
+  ctx.lineWidth=1;
+  const h=ctx.createLinearGradient(x-len,y,x+len,y);
+  h.addColorStop(0,rgbaH(col,0)); h.addColorStop(.5,rgbaH(col,a)); h.addColorStop(1,rgbaH(col,0));
+  ctx.strokeStyle=h; ctx.beginPath(); ctx.moveTo(x-len,y); ctx.lineTo(x+len,y); ctx.stroke();
+  const v=ctx.createLinearGradient(x,y-len,x,y+len);
+  v.addColorStop(0,rgbaH(col,0)); v.addColorStop(.5,rgbaH(col,a)); v.addColorStop(1,rgbaH(col,0));
+  ctx.strokeStyle=v; ctx.beginPath(); ctx.moveTo(x,y-len); ctx.lineTo(x,y+len); ctx.stroke();
+}
+
+function draw(){
+  const sky = palMix();
+  const HZ  = haz();
+  const lap = lapFor(level);
+  const dustA = Math.pow(0.8, lap);          // dust α × 0.8 each lap past depth 07
+
+  /* --- sky --- */
+  const sg=ctx.createLinearGradient(0,0,0,VH);
+  sg.addColorStop(0, rgba(mix(sky,[0,0,0],.35),1));
+  sg.addColorStop(1, rgba(sky,1));
+  ctx.fillStyle=sg; ctx.fillRect(0,0,VW,VH);
+
+  ctx.save();
+  const shx = shake>.3 ? (Math.random()-.5)*shake : 0;
+  const shy = shake>.3 ? (Math.random()-.5)*shake : 0;
+  ctx.translate(shx,shy);
+
+  /* --- dust, then stars --- */
+  ctx.globalAlpha = dustA;
   for(const n of nebulae){
     if(!n.spr) continue;
     const y=((n.y - camY*n.p)%2600+2600)%2600 - 400;
     if(y<-n.r || y>VH+n.r) continue;
     ctx.drawImage(n.spr, n.x-n.r, y-n.r);
   }
+  ctx.globalAlpha = 1;
 
-  for(const s of stars){
-    const y = ((s.y - camY*s.p)%2400+2400)%2400 - 200;
-    if(y<-10||y>VH+10) continue;
-    const col = s.c==='warm' ? P.warm : s.c==='cool' ? P.cool : P.star;
-    ctx.globalAlpha=s.a*(.68+.32*Math.sin(clock*1.7+s.tw));
-    ctx.fillStyle=rgba(col,1);
-    ctx.beginPath(); ctx.arc(s.x,y,s.r,0,TAU); ctx.fill();
-    if(s.hero){                                  // a few get a soft cross flare
-      ctx.globalAlpha*=.45;
-      ctx.strokeStyle=rgba(col,1); ctx.lineWidth=.7;
-      ctx.beginPath();
-      ctx.moveTo(s.x-s.r*3.4,y); ctx.lineTo(s.x+s.r*3.4,y);
-      ctx.moveTo(s.x,y-s.r*3.4); ctx.lineTo(s.x,y+s.r*3.4);
-      ctx.stroke();
-    }
+  if(starSpr){
+    const sp=0.30;                                   // parallax of the baked field
+    let y0=-(((camY*sp)%STAR_STRIP)+STAR_STRIP)%STAR_STRIP;
+    for(let y=y0; y<VH; y+=STAR_STRIP) ctx.drawImage(starSpr,0,y);
   }
-  ctx.globalAlpha=1;
+  for(const s of stars){
+    const y=((s.y - camY*s.p)%STAR_STRIP+STAR_STRIP)%STAR_STRIP;
+    if(y<-12||y>VH+12) continue;
+    const a=s.a*(.62+.38*Math.sin(clock*1.1+s.tw));
+    if(s.flare) starFlare(s.x,y,s.len,s.col,a*.9);
+    else { ctx.fillStyle=rgbaH(s.col,a); ctx.beginPath(); ctx.arc(s.x,y,1.3,0,TAU); ctx.fill(); }
+  }
+
   ctx.translate(0,-camY);
 
-  // record altitude: a line you can see coming, and beat
+  /* --- record altitude --- */
   if(bestRings>0 && planets[bestRings]){
     const by = planets[bestRings].y;
     if(by-camY > -40 && by-camY < VH+40){
       ctx.save();
-      ctx.strokeStyle = rings>bestRings ? 'rgba(127,176,105,.45)' : 'rgba(217,172,75,.30)';
+      const beat = rings>bestRings;
+      ctx.strokeStyle = beat ? 'rgba(127,176,105,.45)' : rgbaH(BRASS,.30);
       ctx.lineWidth=1; ctx.setLineDash([5,7]);
       ctx.beginPath(); ctx.moveTo(0,by); ctx.lineTo(VW,by); ctx.stroke();
       ctx.setLineDash([]);
-      ctx.fillStyle = rings>bestRings ? 'rgba(127,176,105,.75)' : 'rgba(217,172,75,.6)';
+      ctx.fillStyle = beat ? 'rgba(127,176,105,.75)' : rgbaH(BRASS,.6);
       ctx.font='600 9px ui-sans-serif,system-ui,sans-serif';
       ctx.textAlign='right';
-      ctx.fillText((rings>bestRings?'BEATEN · ':'BEST · ')+bestRings, VW-12, by-7);
+      ctx.fillText((beat?'BEATEN · ':'BEST · ')+bestRings, VW-12, by-7);
       ctx.textAlign='left';
       ctx.restore();
     }
   }
 
-  for(const b of belts){
-    if(b.y-camY < -80 || b.y-camY > VH+80) continue;
-    ctx.save();
-    ctx.fillStyle='#6B5A44'; ctx.strokeStyle='#B08A55'; ctx.lineWidth=1;
-    ctx.beginPath(); ctx.arc(b.x,b.y,b.r,0,TAU); ctx.fill(); ctx.stroke();
-    ctx.restore();
-  }
-
-  for(let i=Math.max(0,cur-1); i<planets.length; i++){
+  /* --- draw order: distant rings, worlds, live rings, hazards --- */
+  const lo=Math.max(0,cur-1), hi=planets.length-1;
+  const vis=[];
+  for(let i=lo;i<=hi;i++){
     const p=planets[i];
     if(p.y-camY < -280 || p.y-camY > VH+260) continue;
-    const isCur = i===cur, isNext = i===cur+1;
+    vis.push(p);
+  }
 
+  for(const p of vis) if(p.idx!==cur && p.idx!==cur+1 && !p.boss) drawRing(p,'distant');
+  for(const p of vis) drawWorld(p, sky);
+
+  for(const p of vis){
+    const isCur=p.idx===cur, isNext=p.idx===cur+1;
     if(p.boss){
-      ctx.save();
-      ctx.globalAlpha=.13+Math.sin(clock*2.2)*.05;
-      ctx.fillStyle=HZ.fill;
-      ctx.beginPath(); ctx.arc(p.x,p.y,p.orbitR*1.5,0,TAU); ctx.fill();
-      ctx.restore();
-      ring(p.x,p.y,p.orbitR*1.22,HZ.soft,1,[2,10]);
-    }
-
-    let ringCol = isCur?'rgba(217,172,75,.60)':isNext?'rgba(243,238,226,.42)':rgba(P.coolD,.75);
-    let ringW   = isNext?1.6:1;
-    if(p.special==='gold' && (isCur||isNext)){ ringCol='rgba(255,214,102,.85)'; ringW=2.2; }
-    if(p.special==='sling' && (isCur||isNext)){ ringCol='rgba(127,209,193,.80)'; ringW=2; }
-    if(p.special==='reverse' && (isCur||isNext)){ ringCol='rgba(199,155,255,.80)'; ringW=2; }
-    if(p.boss) ringCol = isCur?'rgba(255,180,90,.85)':'rgba(255,150,110,.60)';
-    ring(p.x,p.y,p.orbitR, ringCol, ringW, isCur?null:[3,6]);
-
-    if(isCur){                                   // engraved graduations
-      ctx.save();
-      ctx.strokeStyle=rgba([217,172,75],.34); ctx.lineWidth=1;
-      for(let k=0;k<24;k++){
-        const a=k*TAU/24, len=(k%6===0)?6:3;
-        ctx.beginPath();
-        ctx.moveTo(p.x+Math.cos(a)*(p.orbitR-len), p.y+Math.sin(a)*(p.orbitR-len));
-        ctx.lineTo(p.x+Math.cos(a)*p.orbitR,       p.y+Math.sin(a)*p.orbitR);
-        ctx.stroke();
+      drawBossRing(p);
+      // the label lives in world space, so it can ride up under the score
+      // readout as the boss approaches — hold it back until there is room
+      const ly = p.y - p.orbitR*1.30 - 9;
+      if(ly - camY > 104){
+        ctx.save();
+        ctx.textAlign='center';
+        ctx.font='700 9px ui-sans-serif,system-ui,sans-serif';
+        ctx.fillStyle=rgbaH(BOSS_PAL.light,.9);
+        ctx.fillText('B O S S  '+(p.bossNum||1), p.x, ly);
+        ctx.restore();
       }
-      ctx.restore();
     }
+    else if(p.special && (isCur||isNext)) drawSpecialRing(p);
+    else if(isCur)  drawRing(p,'current');
+    else if(isNext) drawRing(p,'target');
+    if(p.decay && (isCur||isNext)) ring(p.x,p.y,p.r+4,rgbaH(HZ.fill,.35),1,[2,4]);
+  }
 
-    // special-ring glyphs, drawn small so they read without shouting
-    if(p.special && (isCur||isNext)){
-      ctx.save();
-      ctx.textAlign='center'; ctx.textBaseline='middle';
-      ctx.font='700 10px ui-sans-serif,system-ui,sans-serif';
-      ctx.fillStyle = p.special==='gold'?'#FFD666':p.special==='sling'?'#7FD1C1':'#C79BFF';
-      const gy = p.y - p.orbitR - 11;
-      ctx.fillText(p.special==='gold'?'+5':p.special==='sling'?'\u00BB':'\u21BB', p.x, gy);
-      ctx.restore();
-    }
-    if(p.boss && (isCur||isNext)){
-      ctx.save();
-      ctx.textAlign='center';
-      ctx.font='700 9px ui-sans-serif,system-ui,sans-serif';
-      ctx.letterSpacing='2px';
-      ctx.fillStyle='rgba(255,180,90,.9)';
-      ctx.fillText('BOSS ' + (p.bossNum||1), p.x, p.y - p.orbitR*1.5 - 9);
-      ctx.restore();
-    }
-
-    if(isNext){
-      ctx.save(); ctx.globalAlpha=.10+Math.sin(clock*3)*.04; ctx.fillStyle='#F3EEE2';
-      ctx.beginPath(); ctx.arc(p.x,p.y,p.orbitR,0,TAU); ctx.fill(); ctx.restore();
-    }
-    if(p.decay && (isCur||isNext)) ring(p.x,p.y,p.r+4,HZ.soft,1,[2,4]);
-
-    if(p.bar){
-      const c=Math.cos(p.bar.a), s=Math.sin(p.bar.a);
-      ctx.save();
-      ctx.strokeStyle=HZ.line; ctx.lineWidth=3; ctx.lineCap='round';
-      ctx.beginPath();
-      ctx.moveTo(p.x-c*p.bar.len, p.y-s*p.bar.len);
-      ctx.lineTo(p.x+c*p.bar.len, p.y+s*p.bar.len);
-      ctx.stroke();
-      // barber-stripe the blade so it is distinguishable from a ring by shape
-      ctx.strokeStyle=HZ.edge; ctx.lineWidth=1.1; ctx.setLineDash([4,7]);
-      ctx.beginPath();
-      ctx.moveTo(p.x-c*p.bar.len, p.y-s*p.bar.len);
-      ctx.lineTo(p.x+c*p.bar.len, p.y+s*p.bar.len);
-      ctx.stroke(); ctx.restore();
-    }
-
-    // Aerial perspective: worlds far from the traveller wash toward the sky.
-    // Costs nothing and does more for depth than any amount of shading.
-    const haze = clamp(Math.abs(p.y-py)/760, 0, 1) * .60;
-    const tone = (c) => mix(c, P.bg, haze);
-
-    let inner, outer;
-    if(p.boss){ inner=[255,201,120]; outer=[142,58,34]; }
-    else if(isCur){ inner=P.warm; outer=P.warmD; }
-    else {
-      // each world leans a little warm or cool so no two read identically
-      const k=(p.tint-.5)*.42;
-      inner = k>0 ? mix(P.cool,P.warm,k*2) : mix(P.cool,P.coolD,-k*2);
-      outer = k>0 ? mix(P.coolD,P.warmD,k*2) : P.coolD;
-    }
-    inner=tone(inner); outer=tone(outer);
-
-    if(isCur || isNext || p.boss){            // halo only where the eye is
-      const halo=ctx.createRadialGradient(p.x,p.y,p.r*.92,p.x,p.y,p.r*1.5);
-      halo.addColorStop(0, rgba(inner,.20*(1-haze)));
-      halo.addColorStop(1, rgba(inner,0));
-      ctx.fillStyle=halo;
-      ctx.beginPath(); ctx.arc(p.x,p.y,p.r*1.5,0,TAU); ctx.fill();
-    }
-
-    const g = ctx.createRadialGradient(p.x-p.r*.35, p.y-p.r*.35, p.r*.1, p.x, p.y, p.r);
-    g.addColorStop(0, rgba(inner,1));
-    g.addColorStop(1, rgba(outer,1));
-    ctx.fillStyle=g; ctx.beginPath(); ctx.arc(p.x,p.y,p.r,0,TAU); ctx.fill();
-
-    ctx.save();
-    ctx.beginPath(); ctx.arc(p.x,p.y,p.r,0,TAU); ctx.clip();
-
-    // slow surface bands, so a world turning is legible at a glance
-    const bp = p.bandPhase + clock*p.bandSpeed;
-    for(let b=0;b<p.bands;b++){
-      const off = Math.sin(bp + b*2.1) * p.r*.55;
-      ctx.globalAlpha = .13;
-      ctx.fillStyle = rgba(mix(outer,[0,0,0],.35),1);
-      ctx.beginPath();
-      ctx.ellipse(p.x, p.y+off, p.r*1.05, p.r*(.10+b*.045), 0, 0, TAU);
-      ctx.fill();
-    }
-    ctx.globalAlpha=1;
-
-    // terminator: a flat disc reads as programmer art, a lit sphere does not
-    ctx.fillStyle='rgba(0,0,0,'+(.30*(1-haze*.5)).toFixed(3)+')';
-    ctx.beginPath(); ctx.arc(p.x+p.r*.52, p.y+p.r*.42, p.r*1.06, 0, TAU); ctx.fill();
-    ctx.restore();
-
-    // rim light on the lit edge
-    ctx.save();
-    ctx.globalAlpha=.42*(1-haze);
-    ctx.strokeStyle=rgba(mix(inner,[255,255,255],.55),1); ctx.lineWidth=1.3;
-    ctx.beginPath(); ctx.arc(p.x,p.y,p.r-.6, -2.95, -1.35); ctx.stroke();
-    ctx.restore();
-
-    ctx.strokeStyle=rgba(mix(P.bg,[0,0,0],.4),.5); ctx.lineWidth=1;
-    ctx.beginPath(); ctx.arc(p.x,p.y,p.r,0,TAU); ctx.stroke();
-
+  for(const b of belts){
+    if(b.y-camY < -80 || b.y-camY > VH+80) continue;
+    drawRock(b,HZ);
+  }
+  for(const p of vis){
+    if(p.bar) drawBlade(p.x,p.y,p.bar.len*2,7,p.bar.a,HZ);
     for(const m of p.moons){
       const mx=p.x+Math.cos(m.a)*m.d, my=p.y+Math.sin(m.a)*m.d;
       if(m.flash>0){
-        ctx.save(); ctx.globalAlpha=m.flash*1.6; ctx.strokeStyle='#F3EEE2'; ctx.lineWidth=1.4;
+        ctx.save(); ctx.globalAlpha=m.flash*1.6;
+        ctx.strokeStyle=CREAM; ctx.lineWidth=1.4;
         ctx.beginPath(); ctx.arc(mx,my,m.r+8+(1-m.flash/.5)*11,0,TAU); ctx.stroke(); ctx.restore();
       }
-      drawMoon(mx,my,m.r,HZ);
+      drawSpike(mx,my,m.r,clock*0.5,HZ);
     }
   }
+
   for(const rp of ripples){
-    const k=1-rp.life;
-    ctx.save();
-    ctx.globalAlpha=rp.life*.55;
-    ctx.strokeStyle='#F3EEE2'; ctx.lineWidth=1.6*rp.life+.4;
-    ctx.beginPath(); ctx.arc(rp.x, rp.y, rp.r0 + k*46, 0, TAU); ctx.stroke();
+    ctx.save(); ctx.globalAlpha=rp.life*.55;
+    ctx.strokeStyle=CREAM; ctx.lineWidth=1.6*rp.life+.4;
+    ctx.beginPath(); ctx.arc(rp.x, rp.y, rp.r0+(1-rp.life)*46, 0, TAU); ctx.stroke();
     ctx.restore();
   }
 
-
+  /* --- tether and aim guide --- */
   if(mode==='orbit'){
     const p=planets[cur];
-    ctx.save(); ctx.strokeStyle= graceT>0 ? 'rgba(243,238,226,.5)' : 'rgba(217,172,75,.32)';
-    ctx.lineWidth=1; ctx.beginPath(); ctx.moveTo(p.x,p.y); ctx.lineTo(px,py); ctx.stroke(); ctx.restore();
-
-    // aim guide: shows a beginner exactly where releasing sends them
+    ctx.save();
+    ctx.strokeStyle = graceT>0 ? rgbaH(CREAM,.5) : rgbaH(BRASS,.32);
+    ctx.lineWidth=1;
+    ctx.beginPath(); ctx.moveTo(p.x,p.y); ctx.lineTo(px,py); ctx.stroke();
+    ctx.restore();
     if(practice() || (rings < GUIDE_RINGS && bestRings < 30)){
-      const sgn = Math.sign(spin)||1;
-      const gx = -Math.sin(angle)*sgn, gy = Math.cos(angle)*sgn;
+      const sgn=Math.sign(spin)||1;
+      const gx=-Math.sin(angle)*sgn, gy=Math.cos(angle)*sgn;
       ctx.save();
-      ctx.strokeStyle='rgba(243,238,226,.34)'; ctx.lineWidth=1.4; ctx.setLineDash([2,9]);
+      ctx.strokeStyle=rgbaH(CREAM,.34); ctx.lineWidth=1.4; ctx.setLineDash([2,9]);
       ctx.beginPath(); ctx.moveTo(px,py); ctx.lineTo(px+gx*250, py+gy*250); ctx.stroke();
       ctx.restore();
     }
   }
 
+  /* --- ghost --- */
   if(ghostPath && ghostPath.length>3){
-    const gi=Math.min(ghostIdx, (ghostPath.length>>1)-1);
+    const gi=Math.min(ghostIdx,(ghostPath.length>>1)-1);
     const gx=ghostPath[gi*2], gy=ghostPath[gi*2+1];
     ctx.save();
-    ctx.globalAlpha=.34;
-    ctx.strokeStyle='#F3EEE2'; ctx.lineWidth=1;
+    ctx.globalAlpha=.34; ctx.strokeStyle=CREAM; ctx.lineWidth=1;
     ctx.beginPath(); ctx.arc(gx,gy,PLAYER_R+1.5,0,TAU); ctx.stroke();
-    ctx.globalAlpha=.16; ctx.fillStyle='#F3EEE2';
+    ctx.globalAlpha=.16; ctx.fillStyle=CREAM;
     ctx.beginPath(); ctx.arc(gx,gy,PLAYER_R,0,TAU); ctx.fill();
     ctx.restore();
   }
 
-  if(trail.length>1){
-    for(let i=1;i<trail.length;i++){
-      const f=i/trail.length;
-      ctx.globalAlpha=f*.62;
-      ctx.strokeStyle=SKINS[skin].trail;
-      ctx.lineWidth=.5 + f*4.2;                 // tapers from a point to a ribbon
-      ctx.lineCap='round';
-      ctx.beginPath(); ctx.moveTo(trail[i-1].x,trail[i-1].y); ctx.lineTo(trail[i].x,trail[i].y); ctx.stroke();
-    }
-    ctx.globalAlpha=1;
+  /* --- trail, then the traveller --- */
+  const sk = SKINS[skin] || SKINS.pearl;
+  if(trail.length>2){
+    const pts=[];
+    for(let i=trail.length-1;i>=0;i--) pts.push(trail[i]);   // newest first
+    drawTrail(pts, 6, sk.trail);
   }
-
   if(mode==='orbit'||mode==='fly'){
-    const sk = SKINS[skin] || SKINS.pearl;
     if(shieldUp){
       ctx.save();
       ctx.globalAlpha=.55+Math.sin(clock*4)*.18;
@@ -1952,23 +2214,16 @@ function draw(){
       ctx.beginPath(); ctx.arc(px,py,PLAYER_R+6,0,TAU); ctx.stroke();
       ctx.restore();
     }
-    ctx.save();
-    ctx.globalAlpha = graceT>0 ? (.45+Math.sin(clock*22)*.35) : 1;
-    ctx.shadowColor=sk.glow; ctx.shadowBlur=14;
-    ctx.fillStyle=sk.fill;
-    ctx.translate(px,py);
+    let s=0, ang=0;
     if(mode==='fly'){
-      const spd=Math.hypot(vx,vy);
-      const k=Math.min(spd/SPEED,1.6);
-      ctx.rotate(Math.atan2(vy,vx));
-      ctx.scale(1+k*.50, 1-k*.20);            // stretched along travel
+      ang=Math.atan2(vy,vx);
+      s=Math.min(.45, .18+.27*Math.min(1,Math.hypot(vx,vy)/SPEED));
     } else if(popT>0){
-      const q=1+popT*.55;                      // squash-pop on capture
-      ctx.scale(q, 2-q);
-    }
-    ctx.beginPath(); ctx.arc(0,0,PLAYER_R,0,TAU); ctx.fill();
-    ctx.lineWidth=1; ctx.strokeStyle='rgba(255,255,255,.55)'; ctx.stroke();
-    ctx.restore();
+      s=-.35*popT;                                    // squash on landing
+      ang=angle+Math.PI/2;
+    } else ang=angle+Math.PI/2;
+    const a = graceT>0 ? (.45+Math.sin(clock*22)*.35) : 1;
+    drawTraveller(px,py,ang,s,PLAYER_R,sk,a);
   }
 
   for(const s of sparks){
@@ -1977,22 +2232,20 @@ function draw(){
   }
   ctx.globalAlpha=1; ctx.restore();
 
-  const vg = ctx.createRadialGradient(VW/2,VH*.52,VH*.30,VW/2,VH*.52,VH*.80);
-  vg.addColorStop(0,'rgba(0,0,0,0)');
-  vg.addColorStop(1,'rgba(0,0,0,.40)');
+  /* --- post --- */
+  const vg=ctx.createRadialGradient(VW/2,VH*.52,VH*.30,VW/2,VH*.52,VH*.80);
+  vg.addColorStop(0,'rgba(0,0,0,0)'); vg.addColorStop(1,'rgba(0,0,0,.40)');
   ctx.fillStyle=vg; ctx.fillRect(0,0,VW,VH);
-
   if(grainPat){ ctx.fillStyle=grainPat; ctx.fillRect(0,0,VW,VH); }
 
   if(slowT>0){
-    const k = slowT/SLOW_DUR;
-    const v = ctx.createRadialGradient(VW/2,VH/2,VH*.16,VW/2,VH/2,VH*.70);
+    const k=slowT/SLOW_DUR;
+    const v=ctx.createRadialGradient(VW/2,VH/2,VH*.16,VW/2,VH/2,VH*.70);
     v.addColorStop(0,'rgba(0,0,0,0)');
     v.addColorStop(1,'rgba(150,70,110,'+(k*.46).toFixed(3)+')');
     ctx.fillStyle=v; ctx.fillRect(0,0,VW,VH);
     ctx.save();
-    ctx.globalAlpha=k*.75;
-    ctx.fillStyle='#F3EEE2';
+    ctx.globalAlpha=k*.75; ctx.fillStyle=CREAM;
     ctx.font='700 9px ui-sans-serif,system-ui,sans-serif';
     ctx.textAlign='center';
     ctx.fillText('C L O S E', VW/2, 62);
