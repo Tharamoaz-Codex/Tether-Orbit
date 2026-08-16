@@ -18,9 +18,12 @@ window.__dbg={
   planets:()=>planets.map(p=>({i:p.idx,x:Math.round(p.x0*1000)/1000,y:Math.round(p.y*1000)/1000,
     oR:Math.round(p.orbitR*1000)/1000,boss:!!p.boss,moons:p.moons.length,bar:!!p.bar,decay:!!p.decay,sp:p.special})),
   state:()=>({gameMode,mode,lives,rings,score,coins,spareLives,cbMode,skin,
-    ownedSkins:ownedSkins.slice(),totalRings,bestBoss,bestRings,W,H,VW,VH,
+    ownedSkins:ownedSkins.slice(),totalRings,bestBoss,bestRings,best,W,H,VW,VH,
+    guideAlways,runPractice,
+    sfx:SFX.sfxOn(),haptics:SFX.hapticsOn(),music:Music.isOn(),
     daily:daily?JSON.parse(JSON.stringify(daily)):null,
     chal:chal?JSON.parse(JSON.stringify(chal)):null}),
+  end:()=>endRun(),
   set:(k,v)=>{ if(k==='spareLives')spareLives=v; if(k==='coins')coins=v;
     if(k==='totalRings')totalRings=v; if(k==='bestRings')bestRings=v; if(k==='skin')skin=v; },
   tap:()=>tap(),

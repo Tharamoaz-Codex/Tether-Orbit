@@ -35,12 +35,17 @@
   .col.right{text-align:right}
   #score{font-family:var(--display);font-size:40px;line-height:1;font-variant-numeric:tabular-nums;
     text-align:center;flex:1;text-shadow:0 0 22px rgba(217,172,75,.22)}
-  #lives{display:flex;gap:5px;margin-top:4px}
+  #lives{display:flex;gap:5px;margin-top:4px;align-items:center;min-height:11px}
+  .pipN{font-size:10px;line-height:1;color:var(--brass);letter-spacing:.06em;
+    font-variant-numeric:tabular-nums;font-weight:700}
   .pip{width:9px;height:9px;border-radius:50%;border:1px solid var(--brass-dim)}
   .pip.on{background:var(--vermilion);border-color:var(--vermilion);box-shadow:0 0 8px rgba(221,91,76,.5)}
   #chainWrap{text-align:center;margin-top:5px;height:13px}
   #chain{font-size:9.5px;letter-spacing:.2em;text-transform:uppercase;color:var(--brass);opacity:0;transition:opacity .25s}
   #chain.show{opacity:.85}
+  #practiceTag{text-align:center;margin-top:3px;font-size:8.5px;letter-spacing:.2em;
+    text-transform:uppercase;color:#7FD1C1;opacity:.8}
+  #practiceTag[hidden]{display:none}
 
   /* banner */
   #banner{position:absolute;top:34%;left:0;right:0;text-align:center;pointer-events:none;opacity:0;transition:opacity .4s}
@@ -80,7 +85,9 @@
   button.ghost:hover{background:rgba(255,255,255,.03)}
 
   /* store */
-  #storePanel{justify-content:flex-start;padding-top:40px;padding-bottom:44px;background:#0A0813}
+  #storePanel,#settingsPanel{justify-content:flex-start;padding-top:40px;padding-bottom:44px;background:#0A0813}
+  #settingsPanel .sect{color:#8478A0}
+  #settingsPanel .item button{min-width:74px}
   .storeHead{font-family:var(--display);font-size:32px;letter-spacing:.08em}
   .purse{font-size:11px;color:var(--brass);letter-spacing:.14em;margin-top:8px}
   .sect{font-size:8.5px;letter-spacing:.24em;text-transform:uppercase;color:var(--dust);
@@ -174,6 +181,7 @@
       </div>
     </div>
     <div id="chainWrap"><span id="chain">chain ×1</span></div>
+    <div id="practiceTag" hidden>Practice · nothing is recorded</div>
   </div>
 
   <div id="banner">
@@ -197,6 +205,7 @@
       <button id="modeBtn">Mode · Classic</button>
       <button id="missionBtn">Missions<span id="dailyDot"></span></button>
       <button class="ghost" id="storeBtn">Store</button>
+      <button class="ghost" id="settingsBtn">Settings</button>
     </div>
     <div class="cta" id="titleCta">3 lives per run · 1 coin per ring</div>
   </div>
@@ -243,12 +252,6 @@
     <div class="item">
       <div><div class="t">Coin magnet</div><div class="d">Double coins all run · 45 coins</div></div>
       <button class="boostBuy" data-b="magnet">Buy</button>
-    </div>
-
-    <div class="sect">Accessibility</div>
-    <div class="item">
-      <div><div class="t">High-contrast hazards</div><div class="d">Amber instead of red, heavier outline. Hazards are spiked in both modes.</div></div>
-      <button id="cbToggle">Off</button>
     </div>
 
     <div class="sect">Traveller</div>
@@ -299,6 +302,42 @@
     <div class="btnrow"><button class="ghost" id="closeModes">Back</button></div>
   </div>
 
+  <div class="panel" id="settingsPanel" hidden>
+    <div class="storeHead">Settings</div>
+    <div class="purse">Sound, feel and visibility</div>
+
+    <div class="sect">Audio</div>
+    <div class="item">
+      <div><div class="t">Sound effects</div><div class="d">Captures, coins, impacts</div></div>
+      <button id="setSfx">On</button>
+    </div>
+    <div class="item">
+      <div><div class="t">Music</div><div class="d">Ambient drift beneath the run</div></div>
+      <button id="setMusic">On</button>
+    </div>
+    <div class="item">
+      <div><div class="t">Haptics</div><div class="d">Vibration on capture and impact</div></div>
+      <button id="setHaptics">On</button>
+    </div>
+
+    <div class="sect">Visibility</div>
+    <div class="item">
+      <div><div class="t">High-contrast hazards</div><div class="d">Amber instead of red. Hazards are spiked either way.</div></div>
+      <button id="setCb">Off</button>
+    </div>
+
+    <div class="sect">Practice</div>
+    <div class="item">
+      <div><div class="t">Always show aim guide</div><div class="d">Turns every run into practice</div></div>
+      <button id="setGuide">Off</button>
+    </div>
+    <p class="demoTag">With the aim guide on, nothing from a run is kept — no coins,
+      no lifetime rings, no high score, no mission progress. The Daily Challenge
+      cannot be played while it is on.</p>
+
+    <div class="btnrow"><button class="ghost" id="closeSettings">Back</button></div>
+  </div>
+
   <div class="panel" id="missionPanel" hidden>
     <div class="storeHead">Today's missions</div>
     <div class="purse" id="mResetNote">Three new missions every day</div>
@@ -315,6 +354,7 @@
     <div class="btnrow">
       <button class="primary" id="resumeBtn">Resume</button>
       <button id="restartBtn">Restart run</button>
+      <button class="ghost" id="pauseSettingsBtn">Settings</button>
       <button class="ghost" id="menuBtn">Main menu</button>
     </div>
     <p class="demoTag">Leaving to the menu keeps this run — you can pick it up from the title screen.</p>
@@ -440,14 +480,17 @@ let worldSeed = (Math.random()*4294967296)>>>0;
 
 /* ================= sound & haptics ================= */
 const SFX = (()=>{
-  let ac=null, off=false;
+  // Sound and haptics are separate switches. They used to share one flag, so a
+  // player who wanted silence on a bus also lost the vibration that tells you a
+  // capture landed — and vice versa.
+  let ac=null, sfxOff=false, hapOff=false;
   function ctx(){
     if(!ac){ try{ ac = new (window.AudioContext||window.webkitAudioContext)(); }catch(e){ return null; } }
     if(ac.state==='suspended') ac.resume();
     return ac;
   }
   function tone(f, to, dur, type, vol, delay){
-    if(off) return; const a=ctx(); if(!a) return;
+    if(sfxOff) return; const a=ctx(); if(!a) return;
     const t0=a.currentTime+(delay||0);
     const o=a.createOscillator(), g=a.createGain();
     o.type=type||'sine';
@@ -460,7 +503,7 @@ const SFX = (()=>{
     o.start(t0); o.stop(t0+dur+.03);
   }
   function noise(dur, vol, from, to){
-    if(off) return; const a=ctx(); if(!a) return;
+    if(sfxOff) return; const a=ctx(); if(!a) return;
     const len=Math.max(1,Math.floor(a.sampleRate*dur));
     const buf=a.createBuffer(1,len,a.sampleRate), d=buf.getChannelData(0);
     for(let i=0;i<len;i++) d[i]=(Math.random()*2-1)*(1-i/len);
@@ -474,7 +517,7 @@ const SFX = (()=>{
     g.gain.exponentialRampToValueAtTime(.0001,t0+dur);
     src.connect(lp); lp.connect(g); g.connect(a.destination); src.start(t0);
   }
-  function buzz(p){ if(off) return; try{ navigator.vibrate && navigator.vibrate(p); }catch(e){} }
+  function buzz(p){ if(hapOff) return; try{ navigator.vibrate && navigator.vibrate(p); }catch(e){} }
   return {
     // release the tether: airy upward whoosh
     launch(){ noise(.20,.10,2600,500); tone(300,520,.10,'triangle',.05); buzz(9); },
@@ -490,9 +533,73 @@ const SFX = (()=>{
     level(){ [0,.09,.18].forEach((d,i)=>tone(392*Math.pow(2,[0,4,7][i]/12),null,.24,'triangle',.13,d)); buzz([16,50,16]); },
     die(){ tone(210,42,.55,'sawtooth',.16); noise(.45,.18,900,80); buzz([45,35,75]); },
     click(){ tone(620,null,.05,'square',.07); buzz(6); },
-    prime(){ ctx(); },
-    setMuted(v){ off=!!v; },
-    isMuted(){ return off; }
+    prime(){ const a=ctx(); if(a && typeof Music!=='undefined') Music.start(); return a; },
+    ac(){ return ctx(); },                       // Music needs the same AudioContext
+    setSfx(v){ sfxOff=!v; },     sfxOn(){ return !sfxOff; },
+    setHaptics(v){ hapOff=!v; }, hapticsOn(){ return !hapOff; },
+    // kept so an existing save that only stored `muted` still means something
+    setMuted(v){ sfxOff=!!v; },  isMuted(){ return sfxOff; }
+  };
+})();
+
+/* ================= music =================
+   Procedural, so it costs no download and no asset pipeline: a pair of detuned
+   saws through a slowly opening filter for the pad, plus a sparse minor
+   pentatonic note every few seconds. Pentatonic because every note in it sits
+   consonantly under the capture tones in SFX, which climb chromatically with
+   the chain — a fixed key would fight them.
+
+   Deliberately quiet. This is a bed, not a soundtrack. */
+const Music = (()=>{
+  let on=true, nodes=null, timer=null, root=98;           // ~G2
+  const STEPS=[0,3,5,7,10,12,15];
+
+  function build(){
+    const a = SFX.ac(); if(!a || nodes) return;
+    const g=a.createGain(); g.gain.setValueAtTime(.0001,a.currentTime);
+    g.gain.linearRampToValueAtTime(.05, a.currentTime+4);   // fade in, never a jolt
+    const f=a.createBiquadFilter(); f.type='lowpass';
+    f.frequency.setValueAtTime(420,a.currentTime);
+    const o1=a.createOscillator(), o2=a.createOscillator();
+    o1.type='sawtooth'; o2.type='sawtooth';
+    o1.frequency.value=root; o2.frequency.value=root*1.006; // slow beating
+    const lfo=a.createOscillator(), lg=a.createGain();
+    lfo.type='sine'; lfo.frequency.value=.05; lg.gain.value=200;
+    lfo.connect(lg); lg.connect(f.frequency);
+    o1.connect(f); o2.connect(f); f.connect(g); g.connect(a.destination);
+    o1.start(); o2.start(); lfo.start();
+    nodes={a,g,o1,o2,lfo,f};
+    timer=setInterval(ping, 3800);
+  }
+  function ping(){
+    if(!nodes || !on) return;
+    const a=nodes.a;
+    const semi=STEPS[(Math.random()*STEPS.length)|0];
+    const fr=root*4*Math.pow(2,semi/12);
+    const o=a.createOscillator(), g=a.createGain();
+    o.type='triangle'; o.frequency.value=fr;
+    const t0=a.currentTime;
+    g.gain.setValueAtTime(.0001,t0);
+    g.gain.exponentialRampToValueAtTime(.028, t0+.8);
+    g.gain.exponentialRampToValueAtTime(.0001, t0+3.2);
+    o.connect(g); g.connect(a.destination);
+    o.start(t0); o.stop(t0+3.3);
+  }
+  function tear(){
+    if(!nodes) return;
+    const {a,g,o1,o2,lfo}=nodes;
+    g.gain.cancelScheduledValues(a.currentTime);
+    g.gain.setValueAtTime(g.gain.value, a.currentTime);
+    g.gain.linearRampToValueAtTime(.0001, a.currentTime+1.2);
+    [o1,o2,lfo].forEach(o=>{ try{ o.stop(a.currentTime+1.3); }catch(e){} });
+    clearInterval(timer); timer=null; nodes=null;
+  }
+  return {
+    // called from SFX.prime(), i.e. only after a real user gesture — autoplay
+    // policy blocks anything earlier and would leave a silent AudioContext
+    start(){ if(on) build(); },
+    setEnabled(v){ on=!!v; v ? build() : tear(); },
+    isOn(){ return on; }
   };
 })();
 
@@ -527,7 +634,7 @@ const GAME_MODES = {
   // noSpares: bought lives must not reach a mode whose identity IS its life count
   daily:    {name:'Daily Challenge', sub:'Same worlds for everyone',     lives:3,  hazards:true,  bossEvery:10, noContinue:true, attempts:3, noSpares:true},
   onelife:  {name:'One Life',        sub:'No continues, no second try',  lives:1,  hazards:true,  bossEvery:10, noContinue:true, noSpares:true},
-  zen:      {name:'Zen',             sub:'No hazards, nothing to lose',  lives:99, hazards:false, bossEvery:0,  noCoins:true,    noSpares:true},
+  zen:      {name:'Zen',             sub:'No hazards, nothing to lose',  lives:99, hazards:false, bossEvery:0,  noCoins:true,    noSpares:true, endless:true},
   bossrush: {name:'Boss Rush',       sub:'Bosses, one after another',    lives:3,  hazards:true,  bossEvery:1,  lockRings:40}
 };
 let gameMode='classic';
@@ -556,6 +663,15 @@ let px=0, py=0, vx=0, vy=0, flightT=0, camY=0, shake=0, clock=0;
 let trail=[], stars=[], sparks=[], usedRevive=false, usedDouble=false;
 let bestRings=0, flawless=true, slowT=0, nearCool=0, recordShown=false;
 let totalRings=0, bestBoss=0, cbMode=false;
+// Aim guide as a permanent training wheel. A run with it on is a PRACTICE run:
+// nothing it produces is kept, because a guided score is not the same
+// achievement as an unguided one and mixing them makes the record meaningless.
+let guideAlways=false;
+// Latched per RUN, not read live from the setting. Turning the guide on mid-run
+// taints that run immediately; turning it off cannot un-taint it. Monotonic in
+// one direction is the only version of this that can't be gamed.
+let runPractice=false;
+function practice(){ return runPractice; }
 let ghostRec=[], ghostPath=null, ghostIdx=0, ghostT=0, ghostPlayT=0, dailyGhost=null;
 let paused=false, savedRun=null, spawnProtect=0;
 let daily=null, totalRuns=0;
@@ -792,6 +908,11 @@ function newRun(m){
   // The cap is enforced HERE rather than on each button, because there are
   // three ways in (Begin run, New run, Restart run) and "Restart run" used to
   // skip the check — you could pause and restart a Daily indefinitely.
+  if(want==='daily' && guideAlways){
+    toast('Turn off the aim guide to play the Daily');
+    showTitle();
+    return;
+  }
   if(want==='daily' && attemptsLeft()<=0){
     toast('No attempts left today');
     showTitle();
@@ -799,6 +920,7 @@ function newRun(m){
   }
 
   gameMode = want;
+  runPractice = guideAlways;
   // Seed off the UTC day and a build salt: retuning difficulty in a later
   // version must not silently rewrite what an older build called day N.
   worldSeed = gameMode==='daily' ? seedFromString('tether-'+DAILY_SALT+'-'+utcDay())
@@ -830,7 +952,8 @@ function newRun(m){
     armed[k]=false;
   }
   paintBoosters();
-  checkDay(); totalRuns++; bump('dayRuns',1,false);
+  checkDay();
+  if(!practice()){ totalRuns++; bump('dayRuns',1,false); }
   ensurePlanets();
   attach(planets[0], -Math.PI/2, Math.abs(planets[0].rate));
   camY = planets[0].y - VH*.64; shake=0;
@@ -858,15 +981,30 @@ function attach(p, ang, sp){
   mode='orbit'; trail=[];
 }
 
+/* One pip per life stops reading as a quantity somewhere around six, and Zen's
+   99 rendered as a 55-pixel picket fence. Past five, collapse to a single pip
+   and a count; endless modes get a glyph instead of a number nobody needs. */
+function paintLives(){
+  const l = $('lives'); if(!l) return;
+  l.innerHTML='';
+  const M = GAME_MODES[gameMode] || {};
+  const n = Math.max(lives, 0);
+  const pip = () => { const d=document.createElement('div'); d.className='pip on'; return d; };
+  const tag = t => { const s=document.createElement('span'); s.className='pipN'; s.textContent=t; return s; };
+  if(M.endless){ l.appendChild(pip()); l.appendChild(tag('∞')); return; }
+  if(n > 5){     l.appendChild(pip()); l.appendChild(tag('×'+n)); return; }
+  for(let i=0;i<n;i++) l.appendChild(pip());
+}
+
 function paintHud(){
   $('score').textContent = score.toLocaleString();
   $('lvlVal').textContent = level;
   $('coinVal').textContent = coins.toLocaleString();
-  const l = $('lives'); l.innerHTML='';
-  for(let i=0;i<Math.max(lives,0);i++){ const d=document.createElement('div'); d.className='pip on'; l.appendChild(d); }
+  paintLives();
   const c = $('chain');
   if(chain>1){ c.textContent = 'chain +' + (chain*CHAIN_STEP); c.classList.add('show'); }
   else c.classList.remove('show');
+  $('practiceTag').hidden = !practice();
 }
 
 const COACH_LINES = {
@@ -904,7 +1042,7 @@ function toast(msg){
 /* ================= input ================= */
 // Any full-screen panel swallows gameplay input. Checking the panels
 // directly means a new panel can never forget to block the canvas.
-const UI_PANELS = ['titlePanel','pausePanel','overPanel','storePanel','missionPanel','modePanel','ad'];
+const UI_PANELS = ['titlePanel','pausePanel','overPanel','storePanel','missionPanel','modePanel','settingsPanel','ad'];
 function uiOpen(){
   for(const id of UI_PANELS){ const el=document.getElementById(id); if(el && !el.hidden) return true; }
   return false;
@@ -958,14 +1096,19 @@ function endRun(){
   paused=false; $('pausePanel').hidden=true;
   clearRun();
   $('pauseBtn').hidden=true;
-  if(score>best) best=score;
-  if(rings>bestRings) bestRings=rings;
-  save();
+  // A guided run produces no record of any kind. Everything persistent this
+  // function touches — best, bestRings, totalRings, bestBoss — is gated here.
+  if(!practice()){
+    if(score>best) best=score;
+    if(rings>bestRings) bestRings=rings;
+    totalRings += rings;
+  }
   $('finalScore').textContent = score.toLocaleString();
   $('finalRings').textContent = rings;
   $('finalLvl').textContent = level;
   $('finalCoins').textContent = runCoins;
-  $('bestNote').textContent = 'Best ' + best.toLocaleString();
+  $('bestNote').textContent = practice() ? 'Practice run — nothing recorded'
+                                         : 'Best ' + best.toLocaleString();
   const canBuy = coins >= LIFE_COST;
   $('buyLifeBtn').disabled = !canBuy;
   $('buyLifeBtn').textContent = canBuy ? 'Spend ' + LIFE_COST + ' coins — continue'
@@ -977,7 +1120,7 @@ function endRun(){
   $('overLabel').textContent = M.name + (gameMode==='daily'
     ? ' · attempt '+Math.min(chal.att||1, M.attempts)+' of '+M.attempts
     : (rings===0 ? ' · lost on the first cast' : ''));
-  if(gameMode==='daily'){
+  if(gameMode==='daily' && !practice()){
     if(score > (chal.bestScore||0)){
       chal.bestScore = score;
       dailyGhost = ghostRec.slice();
@@ -985,7 +1128,10 @@ function endRun(){
     }
     saveChallenge();
   }
-  totalRings += rings;
+  // save() last: it used to run BEFORE totalRings and bestBoss were updated, so
+  // closing the app right after a run discarded that run's progress toward the
+  // ring-earned skins.
+  save();
   $('doubleBtn').textContent = 'Watch ad — double ' + runCoins + ' coins';
   $('overPanel').hidden = false;
 }
@@ -1005,7 +1151,7 @@ function captureRing(next){
   if(next.special==='gold') gain += GOLD_COINS;
   if(next.boss){ gain += BOSS_BONUS; score += BASE_POINTS*level*2; }
   if(magnetOn) gain *= 2;
-  if(GAME_MODES[gameMode].noCoins) gain = 0;
+  if(GAME_MODES[gameMode].noCoins || practice()) gain = 0;
   coins += gain; runCoins += gain;
 
   if(next.boss && next.bossNum > bestBoss) bestBoss = next.bossNum;
@@ -1110,7 +1256,7 @@ async function saveDaily(){
   try{ await Store.set('tether:daily', JSON.stringify(daily)); }catch(e){}
 }
 function bump(kind, value, asMax){
-  if(!daily) return;
+  if(!daily || practice()) return;    // a guided run earns nothing, missions included
   let changed=false;
   for(const id of daily.picks){
     const def=MDEF[id];
@@ -1162,7 +1308,15 @@ async function load(){
       if(d.inv) inv = Object.assign({shield:0,slow:0,magnet:0}, d.inv);
       if(Array.isArray(d.skins) && d.skins.length) ownedSkins = d.skins;
       if(d.skin && SKINS[d.skin] && ownedSkins.includes(d.skin)) skin = d.skin;
-      if(d.muted){ SFX.setMuted(true); $('muteBtn').classList.add('off'); }
+      // `muted` is the pre-settings save format: one flag for sound and haptics
+      // together. Honour it only when the newer per-channel keys are absent.
+      if(d.sfx===undefined && d.muted) SFX.setSfx(false);
+      if(d.sfx!==undefined)     SFX.setSfx(!!d.sfx);
+      if(d.hap!==undefined)     SFX.setHaptics(!!d.hap);
+      else if(d.muted)          SFX.setHaptics(false);
+      if(d.music!==undefined)   Music.setEnabled(!!d.music);
+      guideAlways = !!d.guide;
+      $('muteBtn').classList.toggle('off', !SFX.sfxOn());
     }
   }catch(e){}
   try{
@@ -1177,12 +1331,15 @@ async function load(){
   await loadRun();
   checkDay(); checkChallenge();
   paintHud(); paintStore(); paintDaily(); paintBoosters(); paintModes(); paintTitle();
+  paintSettings();
 }
 async function save(){
   try{ await Store.set('tether:save',
     JSON.stringify({coins,best,spare:spareLives,bestRings,runs:totalRuns,
       totalRings, bestBoss, cb:cbMode,
-      inv, skins:ownedSkins, skin, muted:SFX.isMuted()})); }catch(e){}
+      inv, skins:ownedSkins, skin,
+      sfx:SFX.sfxOn(), hap:SFX.hapticsOn(), music:Music.isOn(), guide:guideAlways,
+      muted:!SFX.sfxOn()})); }catch(e){}   // `muted` kept so an older build can still read this
 }
 load();
 
@@ -1752,7 +1909,7 @@ function draw(){
     ctx.lineWidth=1; ctx.beginPath(); ctx.moveTo(p.x,p.y); ctx.lineTo(px,py); ctx.stroke(); ctx.restore();
 
     // aim guide: shows a beginner exactly where releasing sends them
-    if(rings < GUIDE_RINGS && bestRings < 30){
+    if(practice() || (rings < GUIDE_RINGS && bestRings < 30)){
       const sgn = Math.sign(spin)||1;
       const gx = -Math.sin(angle)*sgn, gy = Math.cos(angle)*sgn;
       ctx.save();
@@ -1847,7 +2004,6 @@ function draw(){
 function paintStore(){
   $('purse').textContent = coins.toLocaleString() + ' coins · ' + spareLives + ' spare ' + (spareLives===1?'life':'lives');
   $('lifeForCoins').disabled = coins < LIFE_COST;
-  $('cbToggle').textContent = cbMode?'On':'Off';
   paintBoosters(); paintSkins();
 }
 function paintBoosters(){
@@ -1919,6 +2075,7 @@ document.querySelectorAll('.boostBuy').forEach(b=>{
 });
 
 function modeLocked(k){
+  if(k==='daily' && guideAlways) return true;   // guided runs can't be a fair Daily
   const M=GAME_MODES[k];
   return M.lockRings ? bestRings < M.lockRings : false;
 }
@@ -1934,8 +2091,11 @@ function paintModes(){
       const left=attemptsLeft();
       note += ' · ' + left + ' of ' + M.attempts + ' attempts left';
     }
+    const lockNote = k==='daily' && guideAlways ? 'Aim guide is on'
+                   : locked ? 'Reach '+M.lockRings+' rings'
+                   : (sel ? 'Selected' : '');
     row.innerHTML='<div class="mt">'+M.name+'</div><div class="mm"><span class="mp">'+note+
-      '</span><span class="mlock">'+(locked?'Reach '+M.lockRings+' rings':(sel?'Selected':''))+'</span></div>';
+      '</span><span class="mlock">'+lockNote+'</span></div>';
     if(!locked) row.addEventListener('click', ()=>{
       gameMode=k; SFX.click(); paintModes(); paintTitle();
     });
@@ -1960,6 +2120,7 @@ function paintTitle(){
     cta = left>0 ? left+' attempts left today' : 'No attempts left today';
     $('playBtn').disabled = left<=0;
   } else $('playBtn').disabled=false;
+  if(guideAlways) cta = 'Practice · nothing is recorded';
   $('titleCta').textContent = cta;
 }
 function openModes(){ checkDay(); paintModes(); paintTitle(); $('modePanel').hidden=false; }
@@ -2039,9 +2200,58 @@ document.addEventListener('visibilitychange', ()=>{
   if(document.hidden && (mode==='orbit'||mode==='fly')) openPause();
 });
 window.addEventListener('blur', ()=>{ if(mode==='orbit'||mode==='fly') openPause(); });
-$('cbToggle').addEventListener('click', ()=>{
-  cbMode=!cbMode; SFX.click(); $('cbToggle').textContent = cbMode?'On':'Off';
-  toast(cbMode?'Hazards now amber':'Hazards now red'); save();
+/* ================= settings =================
+   Lives on the title screen and in the pause menu. Accessibility used to be
+   buried in the Store, next to things that cost coins, which is the last place
+   a player looks for it — and implied it was something you buy. */
+function paintSettings(){
+  const set = (id, on) => {
+    const b=$(id); if(!b) return;
+    b.textContent = on ? 'On' : 'Off';
+    b.classList.toggle('primary', !!on);
+  };
+  set('setSfx',     SFX.sfxOn());
+  set('setMusic',   Music.isOn());
+  set('setHaptics', SFX.hapticsOn());
+  set('setCb',      cbMode);
+  set('setGuide',   guideAlways);
+}
+function openSettings(){ SFX.prime(); paintSettings(); $('settingsPanel').hidden=false; }
+
+$('settingsBtn').addEventListener('click', ()=>{ SFX.click(); openSettings(); });
+$('pauseSettingsBtn').addEventListener('click', ()=>{ SFX.click(); openSettings(); });
+$('closeSettings').addEventListener('click', ()=>{
+  SFX.click(); $('settingsPanel').hidden=true; paintTitle(); paintModes();
+});
+
+$('setSfx').addEventListener('click', ()=>{
+  SFX.setSfx(!SFX.sfxOn());
+  $('muteBtn').classList.toggle('off', !SFX.sfxOn());
+  if(SFX.sfxOn()) SFX.click();
+  paintSettings(); save();
+});
+$('setMusic').addEventListener('click', ()=>{
+  SFX.prime();
+  Music.setEnabled(!Music.isOn());
+  SFX.click(); paintSettings(); save();
+});
+$('setHaptics').addEventListener('click', ()=>{
+  SFX.setHaptics(!SFX.hapticsOn());
+  SFX.click(); paintSettings(); save();
+});
+$('setCb').addEventListener('click', ()=>{
+  cbMode=!cbMode; SFX.click();
+  toast(cbMode?'Hazards now amber':'Hazards now red');
+  paintSettings(); save();
+});
+$('setGuide').addEventListener('click', ()=>{
+  guideAlways=!guideAlways; SFX.click();
+  // Turning it on taints the run in progress straight away — you cannot switch
+  // the guide on, clear a hard stretch, then switch it off for the record.
+  if(guideAlways && (mode==='orbit'||mode==='fly')){ runPractice=true; paintHud(); }
+  if(guideAlways && gameMode==='daily'){ gameMode='classic'; }
+  toast(guideAlways ? 'Practice on — runs are not recorded' : 'Practice off');
+  paintSettings(); paintTitle(); paintModes(); save();
 });
 $('missionBtn').addEventListener('click', ()=>{ SFX.prime(); SFX.click(); openMissions(); });
 $('overMissionBtn').addEventListener('click', ()=>{ SFX.click(); openMissions(); });
@@ -2123,12 +2333,13 @@ $('doubleBtn').addEventListener('click', ()=>{
   });
 });
 
+// Quick sound toggle. Haptics and music have their own switches in Settings.
 $('muteBtn').addEventListener('click', ()=>{
-  const now = !SFX.isMuted();
-  SFX.setMuted(now);
-  $('muteBtn').classList.toggle('off', now);
-  save();
-  if(!now){ SFX.prime(); SFX.click(); }
+  const on = !SFX.sfxOn();
+  SFX.setSfx(on);
+  $('muteBtn').classList.toggle('off', !on);
+  paintSettings(); save();
+  if(on){ SFX.prime(); SFX.click(); }
 });
 
 /* ================= loop ================= */

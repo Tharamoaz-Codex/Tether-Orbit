@@ -10,7 +10,8 @@ node tests/instrument.mjs
 node tests/smoke.mjs
 ```
 
-**Status: all five ship blockers are fixed. 8 of 9 checks pass.**
+**Status: all five ship blockers are fixed, plus a Settings menu and practice
+mode. 14 of 15 checks pass.**
 
 ```
 PASS  boots and opens every panel with no runtime error
@@ -20,8 +21,14 @@ PASS  daily world layout is identical across screen widths
 PASS  onelife always starts with exactly 1 life
 PASS  daily always starts with exactly 3 lives
 PASS  pause -> restart cannot exceed the 3-attempt daily cap
-FAIL  a ring-earned skin stays equipped after a reload      <- High 8, not yet fixed
+FAIL  a ring-earned skin stays equipped after a reload      <- High 7, not yet fixed
 PASS  the "High-contrast hazards" setting reaches every hazard draw
+PASS  Zen shows a compact life counter, not one pip per life
+PASS  Settings opens from the title and the pause menu, with all five controls
+PASS  every settings toggle survives a reload
+PASS  a guided run earns no coins, rings, or record
+PASS  an unguided run still earns coins and sets records (control)
+PASS  the Daily Challenge refuses to start while the aim guide is on
 ```
 
 The single remaining failure is a known bug documented under
@@ -144,6 +151,58 @@ revive.
 
 ---
 
+## Settings menu, practice mode and the Zen life counter
+
+Added after the blocker pass.
+
+**Settings is its own panel**, reachable from the title screen and the pause
+menu. High-contrast hazards moved here out of the Store, where it sat between
+things that cost coins — the last place anyone looks for an accessibility
+option, and it implied the setting was something you buy.
+
+It holds five controls: sound effects, music, haptics, high-contrast hazards,
+and the aim guide. All five persist, verified across a reload.
+
+**Sound and haptics are now separate switches.** They shared one flag, so a
+player who wanted silence on a bus also lost the vibration that confirms a
+capture. The `♪` button remains a quick sound toggle; haptics and music have
+their own rows.
+
+**Music is real, not a stub.** There was no music system at all, and adding a
+toggle that set an unread flag would have repeated exactly the bug fixed in
+blocker 4. It is procedural — two detuned saws through a slowly opening filter,
+plus a sparse minor-pentatonic note every few seconds — so it costs no download
+and no asset pipeline. Pentatonic because those notes stay consonant under the
+capture tones, which climb chromatically with the chain. It starts only after a
+real user gesture, since autoplay policy blocks anything earlier.
+
+**The aim guide turns a run into practice.** With it on the guide is always
+drawn, and the run yields nothing: no coins, no lifetime rings, no high score,
+no mission progress. A `PRACTICE · NOTHING IS RECORDED` badge sits under the
+chain readout, and the game-over panel says so instead of showing a best.
+
+Two details worth knowing:
+
+- The flag is latched per run, not read live. Turning the guide on mid-run
+  taints that run immediately; turning it off cannot un-taint it. Monotonic in
+  one direction is the only version that can't be gamed by switching it on for a
+  hard stretch and off again for the record.
+- The Daily Challenge refuses to start while it is on, and shows *Aim guide is
+  on* in the mode list. Unlimited guided practice on the shared seed would
+  hollow out the three-attempt limit.
+
+**Zen's life counter.** 99 lives rendered as 99 pips — a 55-pixel picket fence.
+Past five, the HUD now collapses to one pip and a count; endless modes show a
+single pip and `∞`. This also fixes the ordinary case of a Classic player who
+has banked a dozen spare lives.
+
+While in `endRun` for the practice gating I also moved `save()` to the end of the
+function — it ran *before* `totalRings` was updated, so closing the app right
+after a run discarded that run's progress toward the ring-earned skins. That was
+High 7.
+
+---
+
 ## Remaining work
 
 Not blockers, but listed in the order I would take them.
@@ -158,19 +217,13 @@ and farms `runRings` / `chain` / `runScore` / `flawlessLevel` missions risk-free
 for coin rewards. Scope records per mode, gate Boss Rush on `bestBoss >= 4` as
 originally intended, and exclude Zen from mission progress.
 
-**7. Lifetime rings and boss progress can be lost.** `endRun` calls `save()`
-before incrementing `totalRings`, and `bestBoss` is never saved at the point it
-changes. Both gate skin unlocks, so closing the app right after a run discards
-that run's progress toward Comet, Lantern and Eclipse. Move `save()` to the end
-of `endRun`.
-
-**8. An earned skin will not stay equipped.** *(the one failing check)*
+**7. An earned skin will not stay equipped.** *(the one failing check)*
 `paintSkins` computes `earned` but only pushes into `ownedSkins` on a purchase,
 while `load()` re-equips only if `ownedSkins.includes(d.skin)`. Equip Comet at
 500 lifetime rings, reload, and it reverts to Pearl. Push earned skins into
 `ownedSkins` when the threshold is crossed.
 
-**9. Only layout is deterministic — hazard phase is not.** Moon and blade angles
+**8. Only layout is deterministic — hazard phase is not.** Moon and blade angles
 integrate from whenever `ensurePlanets()` created the planet (five ahead of the
 player), so they depend on how fast the player got there, and `restoreRun` winds
 forward only the planets that exist at restore time. Two players on the same
@@ -178,7 +231,7 @@ daily seed meet the same layout with different hazard phases. Make phase a pure
 function of the clock — `angle = base + rate * clock` evaluated on read — which
 also fixes resume drift and makes the ghost meaningful.
 
-**10. No safe-area insets.** `viewport-fit=cover` deliberately extends the page
+**9. No safe-area insets.** `viewport-fit=cover` deliberately extends the page
 under the notch and gesture bar, but there is no `env(safe-area-inset-*)`
 anywhere. `#hud` sits at `top:0` and `#pauseBtn` / `#muteBtn` at `bottom:14px`,
 so on a notched phone the score runs under the status bar and the buttons under
@@ -186,22 +239,22 @@ the home indicator.
 
 ### Medium
 
-**11. Per-frame cost grows without bound.** `step()` iterates *every* planet and
+**10. Per-frame cost grows without bound.** `step()` iterates *every* planet and
 *every* belt each frame, and both arrays only ever grow. At ring 300 that is 300
 planets' moons updated per frame to render about six. Iterate a window around
 `cur` and prune belts behind the camera.
 
-**12. Nebula sprites are rebuilt far too often.** `buildNebulae()` allocates five
+**11. Nebula sprites are rebuilt far too often.** `buildNebulae()` allocates five
 canvases up to ~760×760 (~11 MB) and runs twice in `newRun`, again in
 `restoreRun`, and on every level-up — every ten rings. Build once and tint at
 draw time.
 
-**13. The pause button disappears after a continue.** `endRun` hides it;
+**12. The pause button disappears after a continue.** `endRun` hides it;
 `playBtn`, `againBtn` and `continueBtn` restore it, but `continueRun()` does not.
 After buying a life or watching a revive ad there is no pause button for the rest
 of the run, and no Escape key on a phone. One line.
 
-**14. Mode choice is not persisted.** `gameMode` is absent from `save()`, so it
+**13. Mode choice is not persisted.** `gameMode` is absent from `save()`, so it
 resets to Classic on every launch.
 
 ### Low
@@ -248,4 +301,4 @@ rewrite:
    want. `DEMO_BUILD` stays `false`.
 2. Check the new 0.75× scale on a real phone — it is the one change here with a
    visible art consequence.
-3. Take High 6–8 if you can; 6 in particular affects what the leaderboard means.
+3. Take High 6–7 if you can; 6 in particular affects what the leaderboard means.

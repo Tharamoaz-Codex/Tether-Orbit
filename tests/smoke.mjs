@@ -166,6 +166,112 @@ for (const [mode, want] of [['onelife', 1], ['daily', 3]]) {
         `render path reads cbMode ${reads} times; ${strays} hazard draws bypass the palette`);
 }
 
+/* 10. Zen's life counter must not render as a picket fence */
+{
+  const { ctx, page } = await open();
+  await page.evaluate(() => window.__dbg.newRun('zen'));
+  await page.waitForTimeout(200);
+  const pips = await page.evaluate(() => ({
+    kids: document.getElementById('lives').children.length,
+    text: document.getElementById('lives').textContent.trim(),
+    lives: window.__dbg.state().lives,
+  }));
+  check('Zen shows a compact life counter, not one pip per life',
+        pips.kids <= 2 && pips.text.includes('∞'),
+        `${pips.lives} lives rendered as ${pips.kids} element(s), reading "${pips.text}"`);
+  await ctx.close();
+}
+
+/* 11. Settings reachable from both the title and the pause menu */
+{
+  const { ctx, page, errors } = await open();
+  await click(page, 'settingsBtn'); await page.waitForTimeout(150);
+  const fromTitle = await page.evaluate(() => !document.getElementById('settingsPanel').hidden);
+  await click(page, 'closeSettings'); await page.waitForTimeout(100);
+  await click(page, 'playBtn'); await page.waitForTimeout(200);
+  await click(page, 'pauseBtn'); await page.waitForTimeout(150);
+  await click(page, 'pauseSettingsBtn'); await page.waitForTimeout(150);
+  const fromPause = await page.evaluate(() => !document.getElementById('settingsPanel').hidden);
+  const rows = await page.evaluate(() =>
+    ['setSfx','setMusic','setHaptics','setCb','setGuide'].filter(i => document.getElementById(i)).length);
+  check('Settings opens from the title and the pause menu, with all five controls',
+        fromTitle && fromPause && rows === 5 && errors.length === 0,
+        `title=${fromTitle} pause=${fromPause} controls=${rows}/5` + (errors.length ? ` errors: ${errors.join('|')}` : ''));
+  await ctx.close();
+}
+
+/* 12. every settings toggle survives a reload */
+{
+  const { ctx, page } = await open();
+  await click(page, 'settingsBtn'); await page.waitForTimeout(150);
+  for (const id of ['setSfx','setMusic','setHaptics','setCb','setGuide']) {
+    await click(page, id); await page.waitForTimeout(80);
+  }
+  const before = await page.evaluate(() => window.__dbg.state());
+  await page.reload();
+  await page.waitForFunction(() => window.__dbg);
+  await page.waitForTimeout(400);
+  const after = await page.evaluate(() => window.__dbg.state());
+  const keys = ['sfx','haptics','music','cbMode','guideAlways'];
+  const kept = keys.filter(k => before[k] === after[k]);
+  check('every settings toggle survives a reload',
+        kept.length === keys.length,
+        `persisted ${kept.length}/${keys.length}: ` +
+        keys.map(k => `${k} ${before[k]}->${after[k]}`).join(', '));
+  await ctx.close();
+}
+
+/* 13. a guided run must earn nothing */
+{
+  const { ctx, page } = await open();
+  await page.evaluate(() => { window.__dbg.set('coins', 0); });
+  await click(page, 'settingsBtn'); await page.waitForTimeout(120);
+  await click(page, 'setGuide');    await page.waitForTimeout(120);
+  await click(page, 'closeSettings'); await page.waitForTimeout(100);
+  await click(page, 'playBtn');     await page.waitForTimeout(250);
+  await page.evaluate(() => window.__dbg.warp(25));
+  await page.waitForTimeout(200);
+  await page.evaluate(() => window.__dbg.end());
+  await page.waitForTimeout(200);
+  const st = await page.evaluate(() => window.__dbg.state());
+  check('a guided run earns no coins, rings, or record',
+        st.coins === 0 && st.totalRings === 0 && st.bestRings === 0 && st.best === 0,
+        `after 25 guided rings: coins=${st.coins} totalRings=${st.totalRings} ` +
+        `bestRings=${st.bestRings} best=${st.best} (practice=${st.runPractice})`);
+  await ctx.close();
+}
+
+/* 14. an unguided run still earns, i.e. 13 is not passing vacuously */
+{
+  const { ctx, page } = await open();
+  await page.evaluate(() => { window.__dbg.set('coins', 0); });
+  await click(page, 'playBtn'); await page.waitForTimeout(250);
+  await page.evaluate(() => window.__dbg.warp(25));
+  await page.waitForTimeout(200);
+  await page.evaluate(() => window.__dbg.end());
+  await page.waitForTimeout(200);
+  const st = await page.evaluate(() => window.__dbg.state());
+  check('an unguided run still earns coins and sets records (control)',
+        st.coins > 0 && st.totalRings > 0 && st.bestRings > 0,
+        `after 25 normal rings: coins=${st.coins} totalRings=${st.totalRings} bestRings=${st.bestRings}`);
+  await ctx.close();
+}
+
+/* 15. the Daily cannot be played with the guide on */
+{
+  const { ctx, page } = await open();
+  await click(page, 'settingsBtn'); await page.waitForTimeout(120);
+  await click(page, 'setGuide');    await page.waitForTimeout(120);
+  await click(page, 'closeSettings'); await page.waitForTimeout(100);
+  await page.evaluate(() => window.__dbg.newRun('daily'));
+  await page.waitForTimeout(200);
+  const st = await page.evaluate(() => window.__dbg.state());
+  check('the Daily Challenge refuses to start while the aim guide is on',
+        st.gameMode !== 'daily' && (st.chal?.att ?? 0) === 0,
+        `mode after attempt: ${st.gameMode}; attempts consumed: ${st.chal?.att ?? 0}`);
+  await ctx.close();
+}
+
 await browser.close();
 server.close();
 const failed = results.filter(r => !r.pass).length;
