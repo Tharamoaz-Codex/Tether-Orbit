@@ -10,8 +10,8 @@ node tests/instrument.mjs
 node tests/smoke.mjs
 ```
 
-**Status: all five ship blockers are fixed, plus a Settings menu and practice
-mode. 14 of 15 checks pass.**
+**Status: all five ship blockers are fixed, plus the art pass, a Settings menu
+and practice mode. 16 of 17 checks pass.**
 
 ```
 PASS  boots and opens every panel with no runtime error
@@ -29,6 +29,8 @@ PASS  every settings toggle survives a reload
 PASS  a guided run earns no coins, rings, or record
 PASS  an unguided run still earns coins and sets records (control)
 PASS  the Daily Challenge refuses to start while the aim guide is on
+PASS  settings can be changed from the pause menu during a run
+PASS  closing Settings returns to the pause menu, still operable
 ```
 
 The single remaining failure is a known bug documented under
@@ -157,6 +159,19 @@ revive.
 ## Settings menu, practice mode and the Zen life counter
 
 Added after the blocker pass.
+
+**Panel layering.** Panels were `position:absolute` with no `z-index`, so they
+stacked in DOM order — and `#pausePanel` is declared after `#settingsPanel`.
+Opening Settings from the pause menu therefore put it *behind* the pause panel:
+visible through the translucent backdrop, but every click landed on the panel in
+front, so settings could not be changed during a run at all. Panels now carry a
+base `z-index` and `openPanel()` raises the newest, so the order they happen to
+be declared in stops mattering. Every open/close routes through that pair.
+
+The regression test for it uses a real pointer click rather than
+`element.click()`, because a DOM click fires straight through an overlay without
+noticing — it would have passed on the broken build. Verified against a
+pre-fix build: the click is intercepted by `pausePanel` and the test fails.
 
 **Settings is its own panel**, reachable from the title screen and the pause
 menu. High-contrast hazards moved here out of the Store, where it sat between

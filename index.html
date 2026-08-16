@@ -55,8 +55,12 @@
   #bannerHint{font-size:11px;color:#9B90B4;margin-top:10px;letter-spacing:.04em}
 
   /* panels */
+  /* Panels stack by z-index, not DOM order. Without this, a panel opened FROM
+     another panel lands behind it whenever it happens to be declared earlier —
+     which is what put Settings behind the pause menu. openPanel() raises the
+     newest one, so the order they are declared in stops mattering. */
   .panel{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;
-    gap:2px;padding:28px;text-align:center;overflow-y:auto;
+    gap:2px;padding:28px;text-align:center;overflow-y:auto;z-index:10;
     background:radial-gradient(ellipse at 50% 45%, rgba(23,19,36,.955), rgba(9,8,15,.995));}
   .panel[hidden]{display:none}
   h1{font-family:var(--display);font-size:56px;font-weight:400;letter-spacing:.14em;text-indent:.14em}
@@ -160,7 +164,7 @@
   .mrow.sel{border-color:var(--brass);background:rgba(217,172,75,.12)}
   #muteBtn{position:absolute;left:14px;bottom:14px;width:38px;height:38px;padding:0;
     border-radius:50%;font-size:14px;letter-spacing:0;border:1px solid #2E2842;
-    color:var(--brass);background:rgba(12,10,20,.55);z-index:5}
+    color:var(--brass);background:rgba(12,10,20,.55);z-index:200}
   #muteBtn.off{color:#4A4260;text-decoration:line-through}
   @media (prefers-reduced-motion: reduce){*{animation-duration:.01ms !important;animation-iteration-count:1 !important}}
 </style>
@@ -1108,6 +1112,23 @@ function uiOpen(){
   for(const id of UI_PANELS){ const el=document.getElementById(id); if(el && !el.hidden) return true; }
   return false;
 }
+
+/* Whichever panel was opened most recently sits on top, so opening one over
+   another (Settings from the pause menu, the Store from game over) always
+   layers the way the player expects. Closing drops it back to the base so the
+   counter cannot climb forever. */
+let panelZ = 10;
+function openPanel(id){
+  const el=$(id); if(!el) return;
+  el.style.zIndex = ++panelZ;
+  el.hidden = false;
+}
+function closePanel(id){
+  const el=$(id); if(!el) return;
+  el.hidden = true;
+  el.style.zIndex = '';
+  if(panelZ>10) panelZ--;
+}
 function inputBlocked(){ return paused || uiOpen() || (mode!=='orbit' && mode!=='fly'); }
 
 function tap(){
@@ -1154,7 +1175,7 @@ function loseLife(){
 
 function endRun(){
   mode='over';
-  paused=false; $('pausePanel').hidden=true;
+  paused=false; closePanel('pausePanel');
   clearRun();
   $('pauseBtn').hidden=true;
   // A guided run produces no record of any kind. Everything persistent this
@@ -1194,11 +1215,11 @@ function endRun(){
   // ring-earned skins.
   save();
   $('doubleBtn').textContent = 'Watch ad — double ' + runCoins + ' coins';
-  $('overPanel').hidden = false;
+  openPanel('overPanel');
 }
 
 function continueRun(){
-  $('overPanel').hidden = true;
+  closePanel('overPanel');
   lives = 1; paintHud();
   respawnSafely(planets[cur]);
 }
@@ -2376,9 +2397,9 @@ function paintTitle(){
   if(guideAlways) cta = 'Practice · nothing is recorded';
   $('titleCta').textContent = cta;
 }
-function openModes(){ checkDay(); paintModes(); paintTitle(); $('modePanel').hidden=false; }
+function openModes(){ checkDay(); paintModes(); paintTitle(); openPanel('modePanel'); }
 
-function openStore(){ paintStore(); $('storePanel').hidden=false; }
+function openStore(){ paintStore(); openPanel('storePanel'); }
 
 $('lifeForCoins').addEventListener('click', ()=>{
   if(coins < LIFE_COST) return;
@@ -2400,7 +2421,7 @@ $('storeBtn').addEventListener('click', ()=>{ SFX.prime(); SFX.click(); openStor
 $('overStoreBtn').addEventListener('click', ()=>{ SFX.click(); openStore(); });
 $('closeStore').addEventListener('click', ()=>{
   SFX.click();
-  $('storePanel').hidden = true;
+  closePanel('storePanel');
   if(mode==='over'){
     const canBuy = coins>=LIFE_COST;
     $('buyLifeBtn').disabled = !canBuy;
@@ -2409,17 +2430,17 @@ $('closeStore').addEventListener('click', ()=>{
   }
 });
 
-function openMissions(){ checkDay(); paintDaily(); $('missionPanel').hidden=false; }
+function openMissions(){ checkDay(); paintDaily(); openPanel('missionPanel'); }
 $('modeBtn').addEventListener('click', ()=>{ SFX.prime(); SFX.click(); openModes(); });
-$('closeModes').addEventListener('click', ()=>{ SFX.click(); $('modePanel').hidden=true; paintTitle(); });
+$('closeModes').addEventListener('click', ()=>{ SFX.click(); closePanel('modePanel'); paintTitle(); });
 function openPause(){
   if(mode!=='orbit' && mode!=='fly') return;
   paused=true;
   $('pauseNote').textContent = GAME_MODES[gameMode].name + ' · ring ' + rings + ' · ' + score.toLocaleString() + ' pts';
-  $('pausePanel').hidden=false;
+  openPanel('pausePanel');
   saveRun();
 }
-function closePause(){ paused=false; $('pausePanel').hidden=true; }
+function closePause(){ paused=false; closePanel('pausePanel'); }
 
 $('pauseBtn').addEventListener('click', ()=>{ SFX.click(); openPause(); });
 $('resumeBtn').addEventListener('click', ()=>{ SFX.click(); graceT=Math.max(graceT,.8); closePause(); });
@@ -2434,7 +2455,8 @@ function showTitle(){
   // simulation stepping behind the menu, so the run could end while the player
   // was looking at the title screen.
   mode='title';
-  $('pausePanel').hidden=true; $('overPanel').hidden=true;
+  closePanel('pausePanel'); closePanel('overPanel');
+  panelZ = 10;                       // back to the base layer
   $('pauseBtn').hidden=true; $('hud').hidden=true;
   $('titlePanel').hidden=false;
   paintTitle();
@@ -2469,12 +2491,12 @@ function paintSettings(){
   set('setCb',      cbMode);
   set('setGuide',   guideAlways);
 }
-function openSettings(){ SFX.prime(); paintSettings(); $('settingsPanel').hidden=false; }
+function openSettings(){ SFX.prime(); paintSettings(); openPanel('settingsPanel'); }
 
 $('settingsBtn').addEventListener('click', ()=>{ SFX.click(); openSettings(); });
 $('pauseSettingsBtn').addEventListener('click', ()=>{ SFX.click(); openSettings(); });
 $('closeSettings').addEventListener('click', ()=>{
-  SFX.click(); $('settingsPanel').hidden=true; paintTitle(); paintModes();
+  SFX.click(); closePanel('settingsPanel'); paintTitle(); paintModes();
 });
 
 $('setSfx').addEventListener('click', ()=>{
@@ -2508,7 +2530,7 @@ $('setGuide').addEventListener('click', ()=>{
 });
 $('missionBtn').addEventListener('click', ()=>{ SFX.prime(); SFX.click(); openMissions(); });
 $('overMissionBtn').addEventListener('click', ()=>{ SFX.click(); openMissions(); });
-$('closeMissions').addEventListener('click', ()=>{ SFX.click(); $('missionPanel').hidden=true; });
+$('closeMissions').addEventListener('click', ()=>{ SFX.click(); closePanel('missionPanel'); });
 
 $('playBtn').addEventListener('click', ()=>{
   SFX.prime(); SFX.click();
@@ -2521,7 +2543,7 @@ $('againBtn').addEventListener('click', ()=>{
     const left=attemptsLeft();
     if(left<=0){ toast('No attempts left today'); gameMode='classic'; }
   }
-  $('overPanel').hidden=true; $('pauseBtn').hidden=false; newRun(); coach();
+  closePanel('overPanel'); $('pauseBtn').hidden=false; newRun(); coach();
 });
 $('buyLifeBtn').addEventListener('click', ()=>{
   if(coins<LIFE_COST) return;
@@ -2561,17 +2583,17 @@ const Ads = {
 };
 
 $('reviveBtn').addEventListener('click', ()=>{
-  SFX.click(); $('overPanel').hidden=true;
+  SFX.click(); closePanel('overPanel');
   Ads.show('one revival', ok=>{
-    if(!ok){ $('overPanel').hidden=false; return; }   // no reward, no cost
+    if(!ok){ openPanel('overPanel'); return; }        // no reward, no cost
     usedRevive=true; continueRun();
   });
 });
 
 $('doubleBtn').addEventListener('click', ()=>{
-  SFX.click(); $('overPanel').hidden=true;
+  SFX.click(); closePanel('overPanel');
   Ads.show(runCoins + ' bonus coins', ok=>{
-    if(!ok){ $('overPanel').hidden=false; return; }
+    if(!ok){ openPanel('overPanel'); return; }
     usedDouble=true;
     coins += runCoins; runCoins *= 2;
     save(); paintHud();
@@ -2581,7 +2603,7 @@ $('doubleBtn').addEventListener('click', ()=>{
     $('buyLifeBtn').disabled = !canBuy;
     $('buyLifeBtn').textContent = canBuy ? 'Spend ' + LIFE_COST + ' coins — continue'
                                          : 'Continue costs ' + LIFE_COST + ' coins (' + coins + ')';
-    $('overPanel').hidden = false;
+    openPanel('overPanel');
     SFX.coinBig(); toast('Coins doubled');
   });
 });

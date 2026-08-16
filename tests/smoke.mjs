@@ -272,6 +272,60 @@ for (const [mode, want] of [['onelife', 1], ['daily', 3]]) {
   await ctx.close();
 }
 
+/* 16. Settings must be usable from the pause menu mid-run.
+      This uses real pointer clicks, not element.click(): the bug it guards
+      against was Settings rendering BEHIND the pause panel, and a DOM click
+      fires straight through an overlay without noticing it. */
+{
+  const { ctx, page, errors } = await open();
+  await page.click('#playBtn');
+  await page.waitForTimeout(250);
+  await page.click('#pauseBtn');
+  await page.waitForTimeout(200);
+  await page.click('#pauseSettingsBtn');
+  await page.waitForTimeout(250);
+
+  // what is actually on top where the toggle sits?
+  const onTop = await page.evaluate(() => {
+    const b = document.getElementById('setCb');
+    const r = b.getBoundingClientRect();
+    const hit = document.elementFromPoint(r.left + r.width/2, r.top + r.height/2);
+    return hit === b || b.contains(hit) ? 'setCb' : (hit?.closest('.panel')?.id || hit?.tagName || 'unknown');
+  });
+
+  const before = await page.evaluate(() => window.__dbg.state().cbMode);
+  let clicked = true;
+  try { await page.click('#setCb', { timeout: 4000 }); }
+  catch { clicked = false; }
+  await page.waitForTimeout(200);
+  const after = await page.evaluate(() => window.__dbg.state().cbMode);
+
+  check('settings can be changed from the pause menu during a run',
+        clicked && before !== after && errors.length === 0,
+        `topmost element at the toggle: ${onTop}; click ${clicked ? 'landed' : 'was intercepted'}; ` +
+        `cbMode ${before} -> ${after}`);
+  await ctx.close();
+}
+
+/* 17. and the pause menu is still there behind it when Settings closes */
+{
+  const { ctx, page } = await open();
+  await page.click('#playBtn');      await page.waitForTimeout(250);
+  await page.click('#pauseBtn');     await page.waitForTimeout(150);
+  await page.click('#pauseSettingsBtn'); await page.waitForTimeout(200);
+  await page.click('#closeSettings');    await page.waitForTimeout(200);
+  const st = await page.evaluate(() => ({
+    settings: document.getElementById('settingsPanel').hidden,
+    pause: document.getElementById('pausePanel').hidden,
+  }));
+  let resumed = true;
+  try { await page.click('#resumeBtn', { timeout: 4000 }); } catch { resumed = false; }
+  check('closing Settings returns to the pause menu, still operable',
+        st.settings === true && st.pause === false && resumed,
+        `settings hidden=${st.settings}, pause hidden=${st.pause}, resume ${resumed ? 'clickable' : 'intercepted'}`);
+  await ctx.close();
+}
+
 await browser.close();
 server.close();
 const failed = results.filter(r => !r.pass).length;
