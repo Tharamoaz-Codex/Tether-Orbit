@@ -114,16 +114,19 @@ was toggled, saved and restored, then never read: **0 occurrences in the render
 path**, against 7 hardcoded reds.
 
 Hazard colour now resolves through `haz()`, which every hazard draw reads. More
-importantly, hazards are now **spiked in both palettes** — hue is the one channel
-red-green colourblind players cannot rely on, so "will this kill me?" has to be
-answerable with colour discarded. Planets are smooth discs; hazards have eight
-spikes stroked *outside* the fill. The solid core still marks the exact collision
-radius, so the silhouette never overstates the hitbox.
+importantly, hazards are **shaped distinctly in both palettes** — hue is the one
+channel red-green colourblind players cannot rely on, so "will this kill me?"
+has to be answerable with colour discarded entirely. Worlds are smooth discs;
+hazards are spiked, hexagonal or cratered.
 
-The colourblind palette is a strong orange (`#FF8C1A`) rather than a soft amber,
-to stay clear of the brass used by rings and the HUD. The coaching line changed
-from "Red means it kills" to "Spiked means it kills", which is true in both
-modes and teaches the more reliable cue.
+The coaching line changed from "Red means it kills" to "Spiked means it kills",
+which is true in both palettes and teaches the more reliable cue.
+
+*(Superseded by the art pass below: the high-contrast palette is now the sheet's
+amber `#FFD666` with a near-black `#120D14` outline at lw 3, and the moon is an
+11-point star rather than the interim eight-spike disc. Amber sits close to the
+brass used by rings, so the heavy dark outline is what does the separating —
+that plus the silhouette, which is the part that survives colourblindness.)*
 
 ### 5. The demo store cannot ship
 
