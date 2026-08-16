@@ -121,7 +121,7 @@ for (const [mode, want] of [['onelife', 1], ['daily', 3]]) {
   }
   const st = await page.evaluate(() => window.__dbg.state());
   check('pause -> restart cannot exceed the 3-attempt daily cap',
-        (st.daily?.att ?? 0) <= 3, `attempts consumed: ${st.daily?.att} of 3 allowed`);
+        (st.chal?.att ?? 0) <= 3, `attempts consumed: ${st.chal?.att} of 3 allowed`);
   await ctx.close();
 }
 
@@ -153,11 +153,17 @@ for (const [mode, want] of [['onelife', 1], ['daily', 3]]) {
       canvas, where every frame differs for unrelated reasons. */
 {
   const src = fs.readFileSync(new URL('../index.html', import.meta.url), 'utf8');
-  const body = src.slice(src.indexOf('function draw(){'), src.indexOf('/* ================= store'));
+  const body = src.slice(src.indexOf('function ring(x,y,r,col,w,dash)'),
+                         src.indexOf('/* ================= store'));
+  // Red literals belong in haz() — that IS the non-colourblind palette. What
+  // must not exist is a hazard drawn from a literal somewhere else, because
+  // that is a draw the toggle cannot reach.
+  const hazFn = body.slice(body.indexOf('function haz(){'), body.indexOf('function drawMoon('));
+  const strays = ((body.split(hazFn).join('')).match(/'#DD5B4C'|'rgba\(221,91,76/g) || []).length;
   const reads = (body.match(/cbMode/g) || []).length;
-  const reds = (body.match(/DD5B4C|221,91,76/g) || []).length;
-  check('the "High-contrast hazards" setting reaches the renderer',
-        reads > 0, `draw() reads cbMode ${reads} times and hardcodes the hazard red ${reds} times`);
+  check('the "High-contrast hazards" setting reaches every hazard draw',
+        reads > 0 && strays === 0,
+        `render path reads cbMode ${reads} times; ${strays} hazard draws bypass the palette`);
 }
 
 await browser.close();

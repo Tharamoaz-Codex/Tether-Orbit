@@ -18,11 +18,24 @@ window.__dbg={
   planets:()=>planets.map(p=>({i:p.idx,x:Math.round(p.x0*1000)/1000,y:Math.round(p.y*1000)/1000,
     oR:Math.round(p.orbitR*1000)/1000,boss:!!p.boss,moons:p.moons.length,bar:!!p.bar,decay:!!p.decay,sp:p.special})),
   state:()=>({gameMode,mode,lives,rings,score,coins,spareLives,cbMode,skin,
-    ownedSkins:ownedSkins.slice(),totalRings,bestBoss,bestRings,W,H,
-    daily:daily?JSON.parse(JSON.stringify(daily)):null}),
+    ownedSkins:ownedSkins.slice(),totalRings,bestBoss,bestRings,W,H,VW,VH,
+    daily:daily?JSON.parse(JSON.stringify(daily)):null,
+    chal:chal?JSON.parse(JSON.stringify(chal)):null}),
   set:(k,v)=>{ if(k==='spareLives')spareLives=v; if(k==='coins')coins=v;
     if(k==='totalRings')totalRings=v; if(k==='bestRings')bestRings=v; if(k==='skin')skin=v; },
-  tap:()=>tap()
+  tap:()=>tap(),
+  cb:v=>{ cbMode=v; },
+  // fast-forward n rings using the game's own capture path, so we can look at
+  // a deep level without playing it
+  warp:n=>{
+    for(let k=0;k<n;k++){
+      ensurePlanets();
+      const nx=planets[cur+1]; if(!nx) break;
+      captureRing(nx);
+      attach(nx, -Math.PI/2, Math.abs(nx.rate));
+    }
+    camY = planets[cur].y - VH*.64;
+  }
 };
 `;
 

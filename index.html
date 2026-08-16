@@ -247,34 +247,39 @@
 
     <div class="sect">Accessibility</div>
     <div class="item">
-      <div><div class="t">High-contrast hazards</div><div class="d">Amber instead of red, heavier outline</div></div>
+      <div><div class="t">High-contrast hazards</div><div class="d">Amber instead of red, heavier outline. Hazards are spiked in both modes.</div></div>
       <button id="cbToggle">Off</button>
     </div>
 
     <div class="sect">Traveller</div>
     <div id="skinList" style="width:min(300px,100%)"></div>
 
-    <div class="sect">Coin packs</div>
-    <div class="item">
-      <div><div class="t">Handful</div><div class="d">200 coins</div></div>
-      <button data-coins="200" data-lives="0" data-price="$0.99" class="iap">$0.99</button>
-    </div>
-    <div class="item">
-      <div><div class="t">Satchel</div><div class="d">600 coins</div></div>
-      <button data-coins="600" data-lives="0" data-price="$2.49" class="iap">$2.49</button>
-    </div>
-    <div class="item">
-      <div><div class="t">Navigator's hoard</div><div class="d">1,800 coins + 3 lives</div></div>
-      <button data-coins="1800" data-lives="3" data-price="$6.99" class="iap">$6.99</button>
-    </div>
+    <!-- Real-money items live behind DEMO_BUILD. They stay out of the DOM flow
+         entirely in a shipping build, so no price is ever shown that cannot be
+         charged and no currency is ever granted for free. -->
+    <div id="iapBlock" style="width:min(300px,100%);display:flex;flex-direction:column;align-items:center" hidden>
+      <div class="sect">Coin packs</div>
+      <div class="item">
+        <div><div class="t">Handful</div><div class="d">200 coins</div></div>
+        <button data-coins="200" data-lives="0" data-price="$0.99" class="iap">$0.99</button>
+      </div>
+      <div class="item">
+        <div><div class="t">Satchel</div><div class="d">600 coins</div></div>
+        <button data-coins="600" data-lives="0" data-price="$2.49" class="iap">$2.49</button>
+      </div>
+      <div class="item">
+        <div><div class="t">Navigator's hoard</div><div class="d">1,800 coins + 3 lives</div></div>
+        <button data-coins="1800" data-lives="3" data-price="$6.99" class="iap">$6.99</button>
+      </div>
 
-    <div class="sect">Lives</div>
-    <div class="item">
-      <div><div class="t">Five spare lives</div><div class="d">Carried into any run</div></div>
-      <button data-coins="0" data-lives="5" data-price="$1.99" class="iap">$1.99</button>
-    </div>
+      <div class="sect">Lives</div>
+      <div class="item">
+        <div><div class="t">Five spare lives</div><div class="d">Carried into any run</div></div>
+        <button data-coins="0" data-lives="5" data-price="$1.99" class="iap">$1.99</button>
+      </div>
 
-    <p class="demoTag">Demo store — no payment is taken and nothing charges. Wire these to Google Play Billing before release.</p>
+      <p class="demoTag">Demo store — no payment is taken and nothing charges. Wire these to Google Play Billing before release.</p>
+    </div>
     <div class="btnrow"><button class="ghost" id="closeStore">Back</button></div>
   </div>
 
@@ -323,6 +328,15 @@
 'use strict';
 const $ = id => document.getElementById(id);
 
+/* ============ build flag ============
+   false = shipping. The real-money store is removed from the page and rewarded
+   video only runs if the native shell has bridged a real SDK in as
+   window.TetherAds. Set true ONLY for local play-testing: it re-enables the
+   placeholder store, which grants coins and lives without taking payment.
+   Shipping that would give the economy away and would not survive Play review,
+   which does not allow advertising a price that never charges. */
+const DEMO_BUILD = false;
+
 /* ============ persistence adapter ============
    window.storage exists only inside the Claude artifact viewer. In a Capacitor
    WebView it is undefined, and because every save is wrapped in try/catch the
@@ -352,12 +366,24 @@ const Store = (() => {
 })();
 const cvs = $('game'), ctx = cvs.getContext('2d'), stage = $('stage');
 
-let W=0, H=0, DPR=1;
+/* ============ virtual coordinate space ============
+   The world is authored in a fixed VW-wide space and drawn through a single
+   uniform scale. World generation therefore never sees the device width, which
+   is what makes one Daily seed produce the same layout — and the same
+   difficulty — on a 390px phone and on a 520px tablet. Scale is uniform on both
+   axes so circles stay circles; a taller screen simply sees further ahead.
+
+   Everything below this line — planet x, belts, stars, camera, SPEED, PLAYER_R
+   — is in world units, not device pixels. Only resize() knows about pixels. */
+const VW = 520;                       // matches #stage max-width
+let W=0, H=0, DPR=1, S=1, VH=0;
 function resize(){
   DPR = Math.min(window.devicePixelRatio || 1, 2);
   W = stage.clientWidth; H = stage.clientHeight;
+  S  = W > 0 ? W / VW : 1;
+  VH = H / S;
   cvs.width = Math.round(W*DPR); cvs.height = Math.round(H*DPR);
-  ctx.setTransform(DPR,0,0,DPR,0,0);
+  ctx.setTransform(DPR*S,0,0,DPR*S,0,0);
 }
 window.addEventListener('resize', resize); resize();
 
@@ -378,6 +404,15 @@ const NEAR_BAND    = 26;    // px of clearance that counts as a near miss
 const NEAR_COOL    = .70;   // seconds before another near miss can fire
 const GUIDE_RINGS  = 8;     // show the aim guide for this many rings
 const SPAWN_PROTECT= 3.0;   // seconds you cannot be killed after a respawn, until you act
+const START_Y      = 540;   // world y of the first planet — fixed, not derived from
+                            // screen height, so absolute world coordinates (and any
+                            // ghost recorded in them) match across devices
+const DAILY_SALT   = 'v1';  // bump when difficulty tuning changes, so an old day's
+                            // seed is never silently reinterpreted by a new build
+const GHOST_DT     = .05;   // ghost sample interval in SECONDS. Sampling per frame
+                            // meant a 60Hz recording replayed at double speed on a
+                            // 120Hz phone — most current Android hardware.
+const GHOST_MAX    = 6000;  // ~5 minutes; bounds what we put in localStorage
 
 const lerp=(a,b,t)=>a+(b-a)*t, clamp=(v,a,b)=>v<a?a:v>b?b:v, rnd=(a,b)=>a+Math.random()*(b-a);
 const TAU = Math.PI*2;
@@ -489,9 +524,10 @@ const SKINS = {
 // Special rings. One per world at most, never on a world that already has a hazard.
 const GAME_MODES = {
   classic:  {name:'Classic',         sub:'Three lives, endless climb',   lives:3,  hazards:true,  bossEvery:10},
-  daily:    {name:'Daily Challenge', sub:'Same worlds for everyone',     lives:3,  hazards:true,  bossEvery:10, noContinue:true, attempts:3},
-  onelife:  {name:'One Life',        sub:'No continues, no second try',  lives:1,  hazards:true,  bossEvery:10, noContinue:true},
-  zen:      {name:'Zen',             sub:'No hazards, nothing to lose',  lives:99, hazards:false, bossEvery:0,  noCoins:true},
+  // noSpares: bought lives must not reach a mode whose identity IS its life count
+  daily:    {name:'Daily Challenge', sub:'Same worlds for everyone',     lives:3,  hazards:true,  bossEvery:10, noContinue:true, attempts:3, noSpares:true},
+  onelife:  {name:'One Life',        sub:'No continues, no second try',  lives:1,  hazards:true,  bossEvery:10, noContinue:true, noSpares:true},
+  zen:      {name:'Zen',             sub:'No hazards, nothing to lose',  lives:99, hazards:false, bossEvery:0,  noCoins:true,    noSpares:true},
   bossrush: {name:'Boss Rush',       sub:'Bosses, one after another',    lives:3,  hazards:true,  bossEvery:1,  lockRings:40}
 };
 let gameMode='classic';
@@ -520,9 +556,11 @@ let px=0, py=0, vx=0, vy=0, flightT=0, camY=0, shake=0, clock=0;
 let trail=[], stars=[], sparks=[], usedRevive=false, usedDouble=false;
 let bestRings=0, flawless=true, slowT=0, nearCool=0, recordShown=false;
 let totalRings=0, bestBoss=0, cbMode=false;
-let ghostRec=[], ghostPath=null, ghostIdx=0, ghFrame=0, dailyGhost=null;
+let ghostRec=[], ghostPath=null, ghostIdx=0, ghostT=0, ghostPlayT=0, dailyGhost=null;
 let paused=false, savedRun=null, spawnProtect=0;
 let daily=null, totalRuns=0;
+let chal=null;                    // Daily Challenge: {day, att, bestScore} — UTC, separate
+                                  // from `daily`, which is local-midnight missions
 let inv={shield:0,slow:0,magnet:0};
 let armed={shield:false,slow:false,magnet:false};
 let ownedSkins=['pearl'], skin='pearl';
@@ -536,7 +574,7 @@ function makeStars(){
   for(let i=0;i<180;i++){
     const hero = Math.random()<.05;
     stars.push({
-      x:Math.random()*W, y:Math.random()*2400,
+      x:Math.random()*VW, y:Math.random()*2400,
       r: hero ? 1.5+Math.random()*.9 : Math.random()*1.1+.2,
       p: Math.random()*.55+.18,
       a: hero ? .85 : Math.random()*.45+.12,
@@ -548,7 +586,7 @@ function makeStars(){
   // background is most of what makes a canvas game look unfinished.
   nebulae=[];
   for(let i=0;i<5;i++) nebulae.push({
-    x: Math.random()*W, y: Math.random()*2600,
+    x: Math.random()*VW, y: Math.random()*2600,
     r: 160+Math.random()*220, p: .07+Math.random()*.06,
     a: .05+Math.random()*.07, warm: Math.random()<.4
   });
@@ -677,8 +715,8 @@ function makePlanet(i, prev){
   const bodyR  = lerp(23, 12, t);
   const rate   = lerp(1.30, 3.6, t) * (1 + ot*.30) * sign();
   const margin = oR + 20;
-  let x = W/2;
-  if(prev) x = clamp(prev.x0 + rr(-lerp(78,170,t), lerp(78,170,t)), margin, Math.max(margin, W-margin));
+  let x = VW/2;
+  if(prev) x = clamp(prev.x0 + rr(-lerp(78,170,t), lerp(78,170,t)), margin, Math.max(margin, VW-margin));
 
   const be   = M.bossEvery;
   const boss = be>0 && i>0 && i % be === 0;
@@ -687,7 +725,7 @@ function makePlanet(i, prev){
   const bRate = bn===1 ? .50  : bn===2 ? .62  : bn===3 ? .72  : .80;
 
   const p = {
-    idx:i, x0:x, x, y: prev ? prev.y-gap : H*.64,
+    idx:i, x0:x, x, y: prev ? prev.y-gap : START_Y,
     r: boss ? bodyR*2.1 : bodyR,
     orbitR: boss ? oR*bMul : oR,
     baseR: boss ? oR*bMul : oR,
@@ -700,7 +738,7 @@ function makePlanet(i, prev){
     bands: 1 + ((R()*3)|0),
     moons:[], bar:null, decay:false, special:null, boss
   };
-  p.x0 = clamp(p.x0, p.margin, Math.max(p.margin, W-p.margin));
+  p.x0 = clamp(p.x0, p.margin, Math.max(p.margin, VW-p.margin));
 
   if(boss){
     const Rr = p.baseR;
@@ -732,7 +770,7 @@ function makePlanet(i, prev){
     else if(kind==='belt' && prev){
       belts.push({
         y: (p.y + prev.y)/2 + rr(-22,22),
-        x: rr(30, Math.max(31,W-30)),
+        x: rr(30, Math.max(31,VW-30)),
         vx: rr(55,120)*sign(),
         r: lerp(11,8,t), forIdx:i
       });
@@ -749,14 +787,34 @@ function ensurePlanets(){
 
 /* ================= run control ================= */
 function newRun(m){
-  gameMode = m || gameMode;
-  worldSeed = gameMode==='daily' ? seedFromString('tether-'+today())
+  const want = m || gameMode;
+
+  // The cap is enforced HERE rather than on each button, because there are
+  // three ways in (Begin run, New run, Restart run) and "Restart run" used to
+  // skip the check — you could pause and restart a Daily indefinitely.
+  if(want==='daily' && attemptsLeft()<=0){
+    toast('No attempts left today');
+    showTitle();
+    return;
+  }
+
+  gameMode = want;
+  // Seed off the UTC day and a build salt: retuning difficulty in a later
+  // version must not silently rewrite what an older build called day N.
+  worldSeed = gameMode==='daily' ? seedFromString('tether-'+DAILY_SALT+'-'+utcDay())
                                  : (Math.random()*4294967296)>>>0;
-  ghostRec=[]; ghostIdx=0; ghFrame=0;
+  ghostRec=[]; ghostIdx=0; ghostT=0; ghostPlayT=0;
   ghostPath = (gameMode==='daily' && dailyGhost && dailyGhost.length>3) ? dailyGhost : null;
-  if(gameMode==='daily'){ checkDay(); daily.att=(daily.att||0)+1; saveDaily(); }
+  if(gameMode==='daily'){ chal.att=(chal.att||0)+1; saveChallenge(); }
   planets=[]; belts=[]; cur=0; rings=0; score=0; chain=0; level=1;
-  lives = GAME_MODES[gameMode].lives + spareLives; spareLives=0; runCoins=0;
+
+  // Spare lives are bought, so they must not reach the modes whose whole point
+  // is a fixed life count — One Life was starting with 6 and Daily with 8.
+  // They are also no longer CONSUMED by those modes.
+  const M = GAME_MODES[gameMode];
+  lives = M.lives;
+  if(!M.noSpares && spareLives>0){ lives += spareLives; spareLives=0; }
+  runCoins=0;
   usedRevive=false; usedDouble=false; trail=[]; sparks=[]; clock=0;
   flawless=true; slowT=0; nearCool=0; recordShown=false; spawnProtect=0;
   shieldUp=false; magnetOn=false; slowRunT=0;
@@ -775,7 +833,7 @@ function newRun(m){
   checkDay(); totalRuns++; bump('dayRuns',1,false);
   ensurePlanets();
   attach(planets[0], -Math.PI/2, Math.abs(planets[0].rate));
-  camY = planets[0].y - H*.64; shake=0;
+  camY = planets[0].y - VH*.64; shake=0;
   makeStars(); buildNebulae(); mode='orbit';
   paintHud(); save();
   showBanner(1);
@@ -815,7 +873,9 @@ const COACH_LINES = {
   0:'Tap to cut the tether — you fly straight out',
   1:'Aim the dotted guide at the next ring',
   3:'Rings shrink the higher you climb',
-  6:'Red means it kills. Do not linger.'
+  // Colour-neutral on purpose: this line has to be true in both palettes, and
+  // shape is the cue we want a new player to learn anyway.
+  6:'Spiked means it kills. Do not linger.'
 };
 let coachT=0;
 function coach(){
@@ -912,18 +972,18 @@ function endRun(){
                                        : 'Continue costs ' + LIFE_COST + ' coins (' + coins + ')';
   const M = GAME_MODES[gameMode];
   if(M.noContinue){ $('buyLifeBtn').hidden=true; $('reviveBtn').hidden=true; }
-  else { $('buyLifeBtn').hidden=false; $('reviveBtn').hidden = usedRevive || rings===0; }
-  $('doubleBtn').hidden = usedDouble || runCoins===0;
+  else { $('buyLifeBtn').hidden=false; $('reviveBtn').hidden = usedRevive || rings===0 || !Ads.ready(); }
+  $('doubleBtn').hidden = usedDouble || runCoins===0 || !Ads.ready();
   $('overLabel').textContent = M.name + (gameMode==='daily'
-    ? ' · attempt '+Math.min(daily.att||1, M.attempts)+' of '+M.attempts
+    ? ' · attempt '+Math.min(chal.att||1, M.attempts)+' of '+M.attempts
     : (rings===0 ? ' · lost on the first cast' : ''));
   if(gameMode==='daily'){
-    if(score > (daily.bestScore||0)){
-      daily.bestScore = score;
+    if(score > (chal.bestScore||0)){
+      chal.bestScore = score;
       dailyGhost = ghostRec.slice();
       saveGhost();
     }
-    saveDaily();
+    saveChallenge();
   }
   totalRings += rings;
   $('doubleBtn').textContent = 'Watch ad — double ' + runCoins + ' coins';
@@ -986,10 +1046,18 @@ const MISSIONS = [
 ];
 const MDEF = Object.fromEntries(MISSIONS.map(m=>[m.id,m]));
 
+// Missions are personal, so they roll over at the player's local midnight.
 function today(){
   const d=new Date();
   return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
 }
+/* The Daily Challenge is NOT personal — it is one shared puzzle, so its day
+   boundary has to be the same instant everywhere. Using the local date meant a
+   player in UTC+14 and one in UTC-11 were handed different worlds and then put
+   on the same leaderboard, and that moving the device clock minted a fresh set
+   of attempts. UTC fixes the first two; the clock guard in checkChallenge
+   handles the third as far as a client can. */
+function utcDay(){ return new Date().toISOString().slice(0,10); }
 // Deterministic pick, so reloading the app never rerolls the day's missions.
 function pickMissions(dateStr){
   let h=0; for(let i=0;i<dateStr.length;i++) h=(h*31+dateStr.charCodeAt(i))>>>0;
@@ -1011,13 +1079,31 @@ function freshDaily(){
 function checkDay(){
   if(!daily || daily.date!==today()){ daily=freshDaily(); saveDaily(); }
 }
+
+/* Attempts reset when the UTC day ADVANCES, never when it goes backwards.
+   Comparing ISO date strings lexically is the same as comparing the dates, so
+   winding the device clock back to yesterday no longer hands out three more
+   tries. Winding it forward still can — only a server clock can close that, and
+   the leaderboard submit is where to check it. */
+function freshChallenge(){ return {day:utcDay(), att:0, bestScore:0}; }
+function checkChallenge(){
+  if(!chal){ chal=freshChallenge(); saveChallenge(); return; }
+  if(utcDay() > chal.day){ chal=freshChallenge(); dailyGhost=null; saveChallenge(); }
+}
+function attemptsLeft(){
+  checkChallenge();
+  return Math.max(0, GAME_MODES.daily.attempts - (chal.att||0));
+}
+async function saveChallenge(){
+  try{ await Store.set('tether:challenge', JSON.stringify(chal)); }catch(e){}
+}
 async function saveGhost(){
-  try{ await Store.set('tether:ghost', JSON.stringify({d:today(), p:dailyGhost})); }catch(e){}
+  try{ await Store.set('tether:ghost', JSON.stringify({d:utcDay(), p:dailyGhost})); }catch(e){}
 }
 async function loadGhost(){
   try{
     const r = await Store.get('tether:ghost');
-    if(r && r.value){ const g=JSON.parse(r.value); if(g.d===today()) dailyGhost=g.p; }
+    if(r && r.value){ const g=JSON.parse(r.value); if(g.d===utcDay()) dailyGhost=g.p; }
   }catch(e){}
 }
 async function saveDaily(){
@@ -1083,9 +1169,13 @@ async function load(){
     const r = await Store.get('tether:daily');
     if(r && r.value) daily = JSON.parse(r.value);
   }catch(e){}
+  try{
+    const r = await Store.get('tether:challenge');
+    if(r && r.value) chal = JSON.parse(r.value);
+  }catch(e){}
   await loadGhost();
   await loadRun();
-  checkDay();
+  checkDay(); checkChallenge();
   paintHud(); paintStore(); paintDaily(); paintBoosters(); paintModes(); paintTitle();
 }
 async function save(){
@@ -1145,14 +1235,14 @@ function restoreRun(d){
   usedRevive=!!d.rev; usedDouble=!!d.dbl; flawless=!!d.flaw;
   shieldUp=!!d.sh; magnetOn=!!d.mg; slowRunT=d.sl||0;
   slowT=0; nearCool=0; ripples=[]; sparks=[]; trail=[]; popT=0;
-  ghostRec=[]; ghostPath=null; ghostIdx=0; ghFrame=0;
+  ghostRec=[]; ghostPath=null; ghostIdx=0; ghostT=0; ghostPlayT=0;
   recordShown = rings > bestRings;
 
   const pl = planets[cur];
   angle=d.ang; spin=d.spin; orbitR=d.oR; pl.orbitR=orbitR;
   px = pl.x + Math.cos(angle)*orbitR;
   py = pl.y + Math.sin(angle)*orbitR;
-  camY = pl.y - H*.62;
+  camY = pl.y - VH*.62;
   graceT = 1.2;                       // never resume straight into a blade
   mode='orbit'; paused=false;
 
@@ -1300,9 +1390,14 @@ function step(dt){
   // Ghosts only exist for Daily, because only Daily guarantees the ghost flew
   // through the same worlds you are flying through now.
   if(gameMode==='daily' && (mode==='orbit'||mode==='fly')){
-    if(++ghFrame % 3 === 0){
-      ghostRec.push(Math.round(px), Math.round(py));
-      if(ghostPath) ghostIdx = Math.min(ghostIdx+1, (ghostPath.length>>1)-1);
+    ghostT += dt;
+    while(ghostT >= GHOST_DT){
+      ghostT -= GHOST_DT;
+      if(ghostRec.length < GHOST_MAX*2) ghostRec.push(Math.round(px), Math.round(py));
+    }
+    if(ghostPath){
+      ghostPlayT += dt;
+      ghostIdx = Math.min(Math.floor(ghostPlayT/GHOST_DT), (ghostPath.length>>1)-1);
     }
   }
   for(let i=ripples.length-1;i>=0;i--){
@@ -1313,14 +1408,14 @@ function step(dt){
   if(bannerT>0){ bannerT-=dt; if(bannerT<=0) $('banner').classList.remove('show'); }
 
   for(const p of planets){
-    p.x = p.drift ? clamp(p.x0 + Math.sin(clock*p.dSpeed+p.phase)*p.drift, p.margin, Math.max(p.margin,W-p.margin)) : p.x0;
+    p.x = p.drift ? clamp(p.x0 + Math.sin(clock*p.dSpeed+p.phase)*p.drift, p.margin, Math.max(p.margin,VW-p.margin)) : p.x0;
     for(const m of p.moons){ m.a += m.s*dt; if(m.flash>0) m.flash-=dt; }
     if(p.bar) p.bar.a += p.bar.s*dt;
   }
   for(const b of belts){
     b.x += b.vx*dt;
     if(b.x < b.r){ b.x=b.r; b.vx*=-1; }
-    if(b.x > W-b.r){ b.x=W-b.r; b.vx*=-1; }
+    if(b.x > VW-b.r){ b.x=VW-b.r; b.vx*=-1; }
   }
 
   if(mode==='orbit'){
@@ -1358,7 +1453,7 @@ function step(dt){
     }
     if(hazardHit()){ loseLife(); return; }
     checkNearMiss(prevX, prevY);
-    if(flightT>MAX_FLIGHT || px<-40 || px>W+40 || py > planets[cur].y + 340){ loseLife(); return; }
+    if(flightT>MAX_FLIGHT || px<-40 || px>VW+40 || py > planets[cur].y + 340){ loseLife(); return; }
   }
 
   for(let i=sparks.length-1;i>=0;i--){
@@ -1372,11 +1467,11 @@ function step(dt){
   // guarantees the traveller can never leave the frame.
   if(mode!=='title'){
     const focus = (mode==='fly') ? py : planets[cur].y;
-    const target = focus - H*.62;
+    const target = focus - VH*.62;
     camY += (target - camY) * Math.min(1, dt*4.5);
     const onScreen = py - camY;
-    if(onScreen < H*.18) camY = py - H*.18;
-    if(onScreen > H*.82) camY = py - H*.82;
+    if(onScreen < VH*.18) camY = py - VH*.18;
+    if(onScreen > VH*.82) camY = py - VH*.82;
   }
   shake *= Math.pow(.001, dt);
 }
@@ -1388,12 +1483,57 @@ function ring(x,y,r,col,w,dash){
   ctx.beginPath(); ctx.arc(x,y,r,0,TAU); ctx.stroke(); ctx.restore();
 }
 
+/* ============ hazard styling ============
+   Two separate jobs here.
+
+   HAZ handles CONTRAST: cbMode swaps the red for amber. That is what the store
+   has been advertising; the renderer simply never read the setting, so the
+   toggle saved, reloaded and did nothing.
+
+   The spikes handle SHAPE, and they are drawn in BOTH modes deliberately. Hue
+   is the one channel roughly 8% of men cannot rely on, so "will this kill me?"
+   has to be answerable with colour discarded entirely. Planets are smooth
+   discs; hazards are spiked. That reads instantly, and in sunlight. */
+function haz(){
+  return cbMode
+    // A strong orange rather than a soft amber: it stays clear of the brass
+    // used by rings and the HUD, and it is far brighter than the red against
+    // this background, which is what protanopes lose first.
+    ? {fill:'#FF8C1A', glow:'rgba(255,140,26,.90)', line:'rgba(255,140,26,.95)',
+       soft:'rgba(255,140,26,.38)', edge:'#FFE9C4', w:1.8}
+    : {fill:'#DD5B4C', glow:'rgba(221,91,76,.70)', line:'rgba(221,91,76,.90)',
+       soft:'rgba(221,91,76,.30)', edge:'rgba(0,0,0,.35)', w:1};
+}
+
+// The solid core is exactly the collision radius; the spikes are stroked
+// OUTSIDE it. The silhouette shouts "hazard" without ever overstating the
+// hitbox — overstating it is what makes a death feel stolen.
+function drawMoon(x,y,r,HZ){
+  ctx.save();
+  ctx.strokeStyle=HZ.line; ctx.lineWidth=Math.max(1.2, r*.32); ctx.lineCap='round';
+  ctx.beginPath();
+  for(let i=0;i<8;i++){
+    const a=i*TAU/8 + Math.PI/8;
+    ctx.moveTo(x+Math.cos(a)*r*.90, y+Math.sin(a)*r*.90);
+    ctx.lineTo(x+Math.cos(a)*r*1.60, y+Math.sin(a)*r*1.60);
+  }
+  ctx.stroke();
+  ctx.shadowColor=HZ.glow; ctx.shadowBlur=10;
+  ctx.fillStyle=HZ.fill;
+  ctx.beginPath(); ctx.arc(x,y,r,0,TAU); ctx.fill();
+  ctx.shadowBlur=0;
+  ctx.lineWidth=HZ.w; ctx.strokeStyle=HZ.edge;
+  ctx.beginPath(); ctx.arc(x,y,r,0,TAU); ctx.stroke();
+  ctx.restore();
+}
+
 function draw(){
   const P = palMix();
-  const sky = ctx.createLinearGradient(0,0,0,H);
+  const HZ = haz();          // resolved once a frame; every hazard draws from it
+  const sky = ctx.createLinearGradient(0,0,0,VH);
   sky.addColorStop(0, rgba(mix(P.bg,[0,0,0],.35),1));
   sky.addColorStop(1, rgba(P.bg,1));
-  ctx.fillStyle=sky; ctx.fillRect(0,0,W,H);
+  ctx.fillStyle=sky; ctx.fillRect(0,0,VW,VH);
   ctx.save();
   const sx = shake>.3 ? (Math.random()-.5)*shake : 0;
   const sy = shake>.3 ? (Math.random()-.5)*shake : 0;
@@ -1402,13 +1542,13 @@ function draw(){
   for(const n of nebulae){
     if(!n.spr) continue;
     const y=((n.y - camY*n.p)%2600+2600)%2600 - 400;
-    if(y<-n.r || y>H+n.r) continue;
+    if(y<-n.r || y>VH+n.r) continue;
     ctx.drawImage(n.spr, n.x-n.r, y-n.r);
   }
 
   for(const s of stars){
     const y = ((s.y - camY*s.p)%2400+2400)%2400 - 200;
-    if(y<-10||y>H+10) continue;
+    if(y<-10||y>VH+10) continue;
     const col = s.c==='warm' ? P.warm : s.c==='cool' ? P.cool : P.star;
     ctx.globalAlpha=s.a*(.68+.32*Math.sin(clock*1.7+s.tw));
     ctx.fillStyle=rgba(col,1);
@@ -1428,23 +1568,23 @@ function draw(){
   // record altitude: a line you can see coming, and beat
   if(bestRings>0 && planets[bestRings]){
     const by = planets[bestRings].y;
-    if(by-camY > -40 && by-camY < H+40){
+    if(by-camY > -40 && by-camY < VH+40){
       ctx.save();
       ctx.strokeStyle = rings>bestRings ? 'rgba(127,176,105,.45)' : 'rgba(217,172,75,.30)';
       ctx.lineWidth=1; ctx.setLineDash([5,7]);
-      ctx.beginPath(); ctx.moveTo(0,by); ctx.lineTo(W,by); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(0,by); ctx.lineTo(VW,by); ctx.stroke();
       ctx.setLineDash([]);
       ctx.fillStyle = rings>bestRings ? 'rgba(127,176,105,.75)' : 'rgba(217,172,75,.6)';
       ctx.font='600 9px ui-sans-serif,system-ui,sans-serif';
       ctx.textAlign='right';
-      ctx.fillText((rings>bestRings?'BEATEN · ':'BEST · ')+bestRings, W-12, by-7);
+      ctx.fillText((rings>bestRings?'BEATEN · ':'BEST · ')+bestRings, VW-12, by-7);
       ctx.textAlign='left';
       ctx.restore();
     }
   }
 
   for(const b of belts){
-    if(b.y-camY < -80 || b.y-camY > H+80) continue;
+    if(b.y-camY < -80 || b.y-camY > VH+80) continue;
     ctx.save();
     ctx.fillStyle='#6B5A44'; ctx.strokeStyle='#B08A55'; ctx.lineWidth=1;
     ctx.beginPath(); ctx.arc(b.x,b.y,b.r,0,TAU); ctx.fill(); ctx.stroke();
@@ -1453,16 +1593,16 @@ function draw(){
 
   for(let i=Math.max(0,cur-1); i<planets.length; i++){
     const p=planets[i];
-    if(p.y-camY < -280 || p.y-camY > H+260) continue;
+    if(p.y-camY < -280 || p.y-camY > VH+260) continue;
     const isCur = i===cur, isNext = i===cur+1;
 
     if(p.boss){
       ctx.save();
       ctx.globalAlpha=.13+Math.sin(clock*2.2)*.05;
-      ctx.fillStyle='#DD5B4C';
+      ctx.fillStyle=HZ.fill;
       ctx.beginPath(); ctx.arc(p.x,p.y,p.orbitR*1.5,0,TAU); ctx.fill();
       ctx.restore();
-      ring(p.x,p.y,p.orbitR*1.22,'rgba(221,91,76,.30)',1,[2,10]);
+      ring(p.x,p.y,p.orbitR*1.22,HZ.soft,1,[2,10]);
     }
 
     let ringCol = isCur?'rgba(217,172,75,.60)':isNext?'rgba(243,238,226,.42)':rgba(P.coolD,.75);
@@ -1510,12 +1650,18 @@ function draw(){
       ctx.save(); ctx.globalAlpha=.10+Math.sin(clock*3)*.04; ctx.fillStyle='#F3EEE2';
       ctx.beginPath(); ctx.arc(p.x,p.y,p.orbitR,0,TAU); ctx.fill(); ctx.restore();
     }
-    if(p.decay && (isCur||isNext)) ring(p.x,p.y,p.r+4,'rgba(221,91,76,.35)',1,[2,4]);
+    if(p.decay && (isCur||isNext)) ring(p.x,p.y,p.r+4,HZ.soft,1,[2,4]);
 
     if(p.bar){
       const c=Math.cos(p.bar.a), s=Math.sin(p.bar.a);
       ctx.save();
-      ctx.strokeStyle='rgba(221,91,76,.9)'; ctx.lineWidth=3; ctx.lineCap='round';
+      ctx.strokeStyle=HZ.line; ctx.lineWidth=3; ctx.lineCap='round';
+      ctx.beginPath();
+      ctx.moveTo(p.x-c*p.bar.len, p.y-s*p.bar.len);
+      ctx.lineTo(p.x+c*p.bar.len, p.y+s*p.bar.len);
+      ctx.stroke();
+      // barber-stripe the blade so it is distinguishable from a ring by shape
+      ctx.strokeStyle=HZ.edge; ctx.lineWidth=1.1; ctx.setLineDash([4,7]);
       ctx.beginPath();
       ctx.moveTo(p.x-c*p.bar.len, p.y-s*p.bar.len);
       ctx.lineTo(p.x+c*p.bar.len, p.y+s*p.bar.len);
@@ -1587,9 +1733,7 @@ function draw(){
         ctx.save(); ctx.globalAlpha=m.flash*1.6; ctx.strokeStyle='#F3EEE2'; ctx.lineWidth=1.4;
         ctx.beginPath(); ctx.arc(mx,my,m.r+8+(1-m.flash/.5)*11,0,TAU); ctx.stroke(); ctx.restore();
       }
-      ctx.save(); ctx.shadowColor='rgba(221,91,76,.7)'; ctx.shadowBlur=10;
-      ctx.fillStyle='#DD5B4C';
-      ctx.beginPath(); ctx.arc(mx,my,m.r,0,TAU); ctx.fill(); ctx.restore();
+      drawMoon(mx,my,m.r,HZ);
     }
   }
   for(const rp of ripples){
@@ -1671,30 +1815,30 @@ function draw(){
   }
 
   for(const s of sparks){
-    ctx.globalAlpha=Math.max(0,s.life); ctx.fillStyle='#DD5B4C';
+    ctx.globalAlpha=Math.max(0,s.life); ctx.fillStyle=HZ.fill;
     ctx.beginPath(); ctx.arc(s.x,s.y,2.2,0,TAU); ctx.fill();
   }
   ctx.globalAlpha=1; ctx.restore();
 
-  const vg = ctx.createRadialGradient(W/2,H*.52,H*.30,W/2,H*.52,H*.80);
+  const vg = ctx.createRadialGradient(VW/2,VH*.52,VH*.30,VW/2,VH*.52,VH*.80);
   vg.addColorStop(0,'rgba(0,0,0,0)');
   vg.addColorStop(1,'rgba(0,0,0,.40)');
-  ctx.fillStyle=vg; ctx.fillRect(0,0,W,H);
+  ctx.fillStyle=vg; ctx.fillRect(0,0,VW,VH);
 
-  if(grainPat){ ctx.fillStyle=grainPat; ctx.fillRect(0,0,W,H); }
+  if(grainPat){ ctx.fillStyle=grainPat; ctx.fillRect(0,0,VW,VH); }
 
   if(slowT>0){
     const k = slowT/SLOW_DUR;
-    const v = ctx.createRadialGradient(W/2,H/2,H*.16,W/2,H/2,H*.70);
+    const v = ctx.createRadialGradient(VW/2,VH/2,VH*.16,VW/2,VH/2,VH*.70);
     v.addColorStop(0,'rgba(0,0,0,0)');
     v.addColorStop(1,'rgba(150,70,110,'+(k*.46).toFixed(3)+')');
-    ctx.fillStyle=v; ctx.fillRect(0,0,W,H);
+    ctx.fillStyle=v; ctx.fillRect(0,0,VW,VH);
     ctx.save();
     ctx.globalAlpha=k*.75;
     ctx.fillStyle='#F3EEE2';
     ctx.font='700 9px ui-sans-serif,system-ui,sans-serif';
     ctx.textAlign='center';
-    ctx.fillText('C L O S E', W/2, 62);
+    ctx.fillText('C L O S E', VW/2, 62);
     ctx.restore();
   }
 }
@@ -1787,7 +1931,7 @@ function paintModes(){
     row.className='mrow'+(locked?' locked':'')+(sel?' sel':'');
     let note=M.sub;
     if(k==='daily'){
-      const left=Math.max(0, M.attempts-(daily&&daily.att||0));
+      const left=attemptsLeft();
       note += ' · ' + left + ' of ' + M.attempts + ' attempts left';
     }
     row.innerHTML='<div class="mt">'+M.name+'</div><div class="mm"><span class="mp">'+note+
@@ -1812,7 +1956,7 @@ function paintTitle(){
   const M=GAME_MODES[gameMode];
   let cta = M.lives===99 ? 'No hazards · no coins' : M.lives + (M.lives===1?' life':' lives') + ' · 1 coin per ring';
   if(gameMode==='daily'){
-    const left=Math.max(0, M.attempts-(daily&&daily.att||0));
+    const left=attemptsLeft();
     cta = left>0 ? left+' attempts left today' : 'No attempts left today';
     $('playBtn').disabled = left<=0;
   } else $('playBtn').disabled=false;
@@ -1828,8 +1972,10 @@ $('lifeForCoins').addEventListener('click', ()=>{
   save(); paintStore(); paintHud();
   SFX.coinBig(); toast('Spare life added');
 });
+if(DEMO_BUILD) $('iapBlock').hidden = false;
 document.querySelectorAll('.iap').forEach(b=>{
   b.addEventListener('click', ()=>{
+    if(!DEMO_BUILD) return;              // never grant currency in a shipping build
     const c = +b.dataset.coins, l = +b.dataset.lives;
     coins += c; spareLives += l;
     save(); paintStore(); paintHud();
@@ -1894,7 +2040,8 @@ document.addEventListener('visibilitychange', ()=>{
 });
 window.addEventListener('blur', ()=>{ if(mode==='orbit'||mode==='fly') openPause(); });
 $('cbToggle').addEventListener('click', ()=>{
-  cbMode=!cbMode; SFX.click(); $('cbToggle').textContent = cbMode?'On':'Off'; save();
+  cbMode=!cbMode; SFX.click(); $('cbToggle').textContent = cbMode?'On':'Off';
+  toast(cbMode?'Hazards now amber':'Hazards now red'); save();
 });
 $('missionBtn').addEventListener('click', ()=>{ SFX.prime(); SFX.click(); openMissions(); });
 $('overMissionBtn').addEventListener('click', ()=>{ SFX.click(); openMissions(); });
@@ -1908,7 +2055,7 @@ $('playBtn').addEventListener('click', ()=>{
 $('againBtn').addEventListener('click', ()=>{
   SFX.click();
   if(gameMode==='daily'){
-    const left=GAME_MODES.daily.attempts-(daily.att||0);
+    const left=attemptsLeft();
     if(left<=0){ toast('No attempts left today'); gameMode='classic'; }
   }
   $('overPanel').hidden=true; $('pauseBtn').hidden=false; newRun(); coach();
@@ -1928,14 +2075,41 @@ function playAd(rewardLabel, secs, done){
   }, 1000);
 }
 
+/* ============ rewarded video ============
+   The native shell bridges a real SDK in as:
+     window.TetherAds = { show(label, done){ ...; done(true) } }   // false = no reward
+   Until that exists, ready() is false and the two reward buttons are hidden
+   rather than paying out for free. The reward is granted in the callback and
+   only on success, so a dismissed or failed ad no longer burns the one revive
+   the player had. */
+const Ads = {
+  ready(){
+    return DEMO_BUILD || !!(window.TetherAds && typeof window.TetherAds.show === 'function');
+  },
+  show(label, done){
+    if(window.TetherAds && typeof window.TetherAds.show === 'function'){
+      try{ window.TetherAds.show(label, ok => done(ok !== false)); }
+      catch(e){ toast('Ad failed to load'); done(false); }
+      return;
+    }
+    if(DEMO_BUILD){ playAd(label, 5, ()=>done(true)); return; }
+    toast('Ads unavailable'); done(false);
+  }
+};
+
 $('reviveBtn').addEventListener('click', ()=>{
-  SFX.click(); usedRevive=true; $('overPanel').hidden=true;
-  playAd('one revival', 5, continueRun);
+  SFX.click(); $('overPanel').hidden=true;
+  Ads.show('one revival', ok=>{
+    if(!ok){ $('overPanel').hidden=false; return; }   // no reward, no cost
+    usedRevive=true; continueRun();
+  });
 });
 
 $('doubleBtn').addEventListener('click', ()=>{
-  SFX.click(); usedDouble=true; $('overPanel').hidden=true;
-  playAd(runCoins + ' bonus coins', 5, ()=>{
+  SFX.click(); $('overPanel').hidden=true;
+  Ads.show(runCoins + ' bonus coins', ok=>{
+    if(!ok){ $('overPanel').hidden=false; return; }
+    usedDouble=true;
     coins += runCoins; runCoins *= 2;
     save(); paintHud();
     $('finalCoins').textContent = runCoins;
@@ -1977,7 +2151,7 @@ function frame(now){
 }
 makeGrain();
 planets=[]; cur=0; makeStars(); buildNebulae(); ensurePlanets();
-camY = planets[0].y - H*.64;
+camY = planets[0].y - VH*.64;
 requestAnimationFrame(frame);
 })();
 </script>
