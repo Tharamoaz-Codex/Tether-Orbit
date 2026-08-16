@@ -326,6 +326,36 @@ for (const [mode, want] of [['onelife', 1], ['daily', 3]]) {
   await ctx.close();
 }
 
+/* 18. The results screen must not be a frozen photo of where you died.
+      Invariant: at mode 'over' the canvas cannot depend on the world, so
+      deleting every planet must not change a single pixel. The clock is frozen
+      in this state, which is what makes a byte comparison meaningful — check
+      that first, or the test proves nothing. */
+{
+  const { ctx, page } = await open();
+  await click(page, 'playBtn');
+  await page.waitForTimeout(250);
+  await page.evaluate(() => window.__dbg.warp(24));
+  await page.waitForTimeout(300);
+  await page.evaluate(() => window.__dbg.end());
+  await page.waitForTimeout(400);
+
+  const shot = async () => (await page.locator('#game').screenshot()).toString('base64');
+  const a1 = await shot();
+  await page.waitForTimeout(250);
+  const a2 = await shot();                       // control: is the frame static?
+  const worlds = await page.evaluate(() => window.__dbg.planets().length);
+  await page.evaluate(() => window.__dbg.clearWorld());
+  await page.waitForTimeout(250);
+  const b = await shot();
+
+  check('the results screen does not render the world you died in',
+        a1 === a2 && a2 === b,
+        a1 !== a2 ? 'frame is not static at game over — comparison inconclusive'
+                  : `${worlds} planets present; deleting them ${a2===b?'changed nothing':'changed the canvas'}`);
+  await ctx.close();
+}
+
 await browser.close();
 server.close();
 const failed = results.filter(r => !r.pass).length;

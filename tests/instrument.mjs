@@ -24,6 +24,8 @@ window.__dbg={
     daily:daily?JSON.parse(JSON.stringify(daily)):null,
     chal:chal?JSON.parse(JSON.stringify(chal)):null}),
   end:()=>endRun(),
+  // strip the world so a render can be tested for dependence on it
+  clearWorld:()=>{ planets=[]; belts=[]; sparks=[]; ripples=[]; trail=[]; },
   set:(k,v)=>{ if(k==='spareLives')spareLives=v; if(k==='coins')coins=v;
     if(k==='totalRings')totalRings=v; if(k==='bestRings')bestRings=v; if(k==='skin')skin=v; },
   tap:()=>tap(),

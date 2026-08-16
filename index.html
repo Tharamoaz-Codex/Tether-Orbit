@@ -1178,6 +1178,16 @@ function endRun(){
   paused=false; closePanel('pausePanel');
   clearRun();
   $('pauseBtn').hidden=true;
+  /* Clear the play-state overlays. The results panel is translucent, so the
+     score, the level banner, the coaching line and any live toast were all
+     ghosting through it. `shake` matters too: it only decays inside step(),
+     which stops running here, so a death left it pinned above the threshold
+     and draw() re-jittered the whole canvas by Math.random() every frame. */
+  $('hud').hidden = true;
+  $('banner').classList.remove('show'); bannerT = 0;
+  $('coach').classList.remove('show');  coachT  = 0;
+  const tt=$('toast'); clearTimeout(tt._h); tt.classList.remove('show');
+  shake = 0;
   // A guided run produces no record of any kind. Everything persistent this
   // function touches — best, bestRings, totalRings, bestBoss — is gated here.
   if(!practice()){
@@ -1220,6 +1230,10 @@ function endRun(){
 
 function continueRun(){
   closePanel('overPanel');
+  // endRun hid both of these; a continued run needs them back, or the player
+  // spends the rest of the run with no readout and no way to pause on a phone.
+  $('hud').hidden = false;
+  $('pauseBtn').hidden = false;
   lives = 1; paintHud();
   respawnSafely(planets[cur]);
 }
@@ -2111,145 +2125,152 @@ function draw(){
     else { ctx.fillStyle=rgbaH(s.col,a); ctx.beginPath(); ctx.arc(s.x,y,1.3,0,TAU); ctx.fill(); }
   }
 
-  ctx.translate(0,-camY);
+  /* Menus get the background layers only. Rendering the frozen gameplay
+     frame behind the results panel meant every run ended staring at the
+     exact spot you died, bleeding through a near-opaque panel as bright
+     smudges. Pause is deliberately NOT included — there you are about to
+     resume, so seeing the world you are suspended in is the whole point. */
+  if(mode!=='title' && mode!=='over'){
+    ctx.translate(0,-camY);
 
-  /* --- record altitude --- */
-  if(bestRings>0 && planets[bestRings]){
-    const by = planets[bestRings].y;
-    if(by-camY > -40 && by-camY < VH+40){
-      ctx.save();
-      const beat = rings>bestRings;
-      ctx.strokeStyle = beat ? 'rgba(127,176,105,.45)' : rgbaH(BRASS,.30);
-      ctx.lineWidth=1; ctx.setLineDash([5,7]);
-      ctx.beginPath(); ctx.moveTo(0,by); ctx.lineTo(VW,by); ctx.stroke();
-      ctx.setLineDash([]);
-      ctx.fillStyle = beat ? 'rgba(127,176,105,.75)' : rgbaH(BRASS,.6);
-      ctx.font='600 9px ui-sans-serif,system-ui,sans-serif';
-      ctx.textAlign='right';
-      ctx.fillText((beat?'BEATEN · ':'BEST · ')+bestRings, VW-12, by-7);
-      ctx.textAlign='left';
-      ctx.restore();
-    }
-  }
-
-  /* --- draw order: distant rings, worlds, live rings, hazards --- */
-  const lo=Math.max(0,cur-1), hi=planets.length-1;
-  const vis=[];
-  for(let i=lo;i<=hi;i++){
-    const p=planets[i];
-    if(p.y-camY < -280 || p.y-camY > VH+260) continue;
-    vis.push(p);
-  }
-
-  for(const p of vis) if(p.idx!==cur && p.idx!==cur+1 && !p.boss) drawRing(p,'distant');
-  for(const p of vis) drawWorld(p, sky);
-
-  for(const p of vis){
-    const isCur=p.idx===cur, isNext=p.idx===cur+1;
-    if(p.boss){
-      drawBossRing(p);
-      // the label lives in world space, so it can ride up under the score
-      // readout as the boss approaches — hold it back until there is room
-      const ly = p.y - p.orbitR*1.30 - 9;
-      if(ly - camY > 104){
+    /* --- record altitude --- */
+    if(bestRings>0 && planets[bestRings]){
+      const by = planets[bestRings].y;
+      if(by-camY > -40 && by-camY < VH+40){
         ctx.save();
-        ctx.textAlign='center';
-        ctx.font='700 9px ui-sans-serif,system-ui,sans-serif';
-        ctx.fillStyle=rgbaH(BOSS_PAL.light,.9);
-        ctx.fillText('B O S S  '+(p.bossNum||1), p.x, ly);
+        const beat = rings>bestRings;
+        ctx.strokeStyle = beat ? 'rgba(127,176,105,.45)' : rgbaH(BRASS,.30);
+        ctx.lineWidth=1; ctx.setLineDash([5,7]);
+        ctx.beginPath(); ctx.moveTo(0,by); ctx.lineTo(VW,by); ctx.stroke();
+        ctx.setLineDash([]);
+        ctx.fillStyle = beat ? 'rgba(127,176,105,.75)' : rgbaH(BRASS,.6);
+        ctx.font='600 9px ui-sans-serif,system-ui,sans-serif';
+        ctx.textAlign='right';
+        ctx.fillText((beat?'BEATEN · ':'BEST · ')+bestRings, VW-12, by-7);
+        ctx.textAlign='left';
         ctx.restore();
       }
     }
-    else if(p.special && (isCur||isNext)) drawSpecialRing(p);
-    else if(isCur)  drawRing(p,'current');
-    else if(isNext) drawRing(p,'target');
-    if(p.decay && (isCur||isNext)) ring(p.x,p.y,p.r+4,rgbaH(HZ.fill,.35),1,[2,4]);
-  }
 
-  for(const b of belts){
-    if(b.y-camY < -80 || b.y-camY > VH+80) continue;
-    drawRock(b,HZ);
-  }
-  for(const p of vis){
-    if(p.bar) drawBlade(p.x,p.y,p.bar.len*2,7,p.bar.a,HZ);
-    for(const m of p.moons){
-      const mx=p.x+Math.cos(m.a)*m.d, my=p.y+Math.sin(m.a)*m.d;
-      if(m.flash>0){
-        ctx.save(); ctx.globalAlpha=m.flash*1.6;
-        ctx.strokeStyle=CREAM; ctx.lineWidth=1.4;
-        ctx.beginPath(); ctx.arc(mx,my,m.r+8+(1-m.flash/.5)*11,0,TAU); ctx.stroke(); ctx.restore();
+    /* --- draw order: distant rings, worlds, live rings, hazards --- */
+    const lo=Math.max(0,cur-1), hi=planets.length-1;
+    const vis=[];
+    for(let i=lo;i<=hi;i++){
+      const p=planets[i];
+      if(p.y-camY < -280 || p.y-camY > VH+260) continue;
+      vis.push(p);
+    }
+
+    for(const p of vis) if(p.idx!==cur && p.idx!==cur+1 && !p.boss) drawRing(p,'distant');
+    for(const p of vis) drawWorld(p, sky);
+
+    for(const p of vis){
+      const isCur=p.idx===cur, isNext=p.idx===cur+1;
+      if(p.boss){
+        drawBossRing(p);
+        // the label lives in world space, so it can ride up under the score
+        // readout as the boss approaches — hold it back until there is room
+        const ly = p.y - p.orbitR*1.30 - 9;
+        if(ly - camY > 104){
+          ctx.save();
+          ctx.textAlign='center';
+          ctx.font='700 9px ui-sans-serif,system-ui,sans-serif';
+          ctx.fillStyle=rgbaH(BOSS_PAL.light,.9);
+          ctx.fillText('B O S S  '+(p.bossNum||1), p.x, ly);
+          ctx.restore();
+        }
       }
-      drawSpike(mx,my,m.r,clock*0.5,HZ);
+      else if(p.special && (isCur||isNext)) drawSpecialRing(p);
+      else if(isCur)  drawRing(p,'current');
+      else if(isNext) drawRing(p,'target');
+      if(p.decay && (isCur||isNext)) ring(p.x,p.y,p.r+4,rgbaH(HZ.fill,.35),1,[2,4]);
     }
-  }
 
-  for(const rp of ripples){
-    ctx.save(); ctx.globalAlpha=rp.life*.55;
-    ctx.strokeStyle=CREAM; ctx.lineWidth=1.6*rp.life+.4;
-    ctx.beginPath(); ctx.arc(rp.x, rp.y, rp.r0+(1-rp.life)*46, 0, TAU); ctx.stroke();
-    ctx.restore();
-  }
+    for(const b of belts){
+      if(b.y-camY < -80 || b.y-camY > VH+80) continue;
+      drawRock(b,HZ);
+    }
+    for(const p of vis){
+      if(p.bar) drawBlade(p.x,p.y,p.bar.len*2,7,p.bar.a,HZ);
+      for(const m of p.moons){
+        const mx=p.x+Math.cos(m.a)*m.d, my=p.y+Math.sin(m.a)*m.d;
+        if(m.flash>0){
+          ctx.save(); ctx.globalAlpha=m.flash*1.6;
+          ctx.strokeStyle=CREAM; ctx.lineWidth=1.4;
+          ctx.beginPath(); ctx.arc(mx,my,m.r+8+(1-m.flash/.5)*11,0,TAU); ctx.stroke(); ctx.restore();
+        }
+        drawSpike(mx,my,m.r,clock*0.5,HZ);
+      }
+    }
 
-  /* --- tether and aim guide --- */
-  if(mode==='orbit'){
-    const p=planets[cur];
-    ctx.save();
-    ctx.strokeStyle = graceT>0 ? rgbaH(CREAM,.5) : rgbaH(BRASS,.32);
-    ctx.lineWidth=1;
-    ctx.beginPath(); ctx.moveTo(p.x,p.y); ctx.lineTo(px,py); ctx.stroke();
-    ctx.restore();
-    if(practice() || (rings < GUIDE_RINGS && bestRings < 30)){
-      const sgn=Math.sign(spin)||1;
-      const gx=-Math.sin(angle)*sgn, gy=Math.cos(angle)*sgn;
-      ctx.save();
-      ctx.strokeStyle=rgbaH(CREAM,.34); ctx.lineWidth=1.4; ctx.setLineDash([2,9]);
-      ctx.beginPath(); ctx.moveTo(px,py); ctx.lineTo(px+gx*250, py+gy*250); ctx.stroke();
+    for(const rp of ripples){
+      ctx.save(); ctx.globalAlpha=rp.life*.55;
+      ctx.strokeStyle=CREAM; ctx.lineWidth=1.6*rp.life+.4;
+      ctx.beginPath(); ctx.arc(rp.x, rp.y, rp.r0+(1-rp.life)*46, 0, TAU); ctx.stroke();
       ctx.restore();
     }
-  }
 
-  /* --- ghost --- */
-  if(ghostPath && ghostPath.length>3){
-    const gi=Math.min(ghostIdx,(ghostPath.length>>1)-1);
-    const gx=ghostPath[gi*2], gy=ghostPath[gi*2+1];
-    ctx.save();
-    ctx.globalAlpha=.34; ctx.strokeStyle=CREAM; ctx.lineWidth=1;
-    ctx.beginPath(); ctx.arc(gx,gy,PLAYER_R+1.5,0,TAU); ctx.stroke();
-    ctx.globalAlpha=.16; ctx.fillStyle=CREAM;
-    ctx.beginPath(); ctx.arc(gx,gy,PLAYER_R,0,TAU); ctx.fill();
-    ctx.restore();
-  }
-
-  /* --- trail, then the traveller --- */
-  const sk = SKINS[skin] || SKINS.pearl;
-  if(trail.length>2){
-    const pts=[];
-    for(let i=trail.length-1;i>=0;i--) pts.push(trail[i]);   // newest first
-    drawTrail(pts, 6, sk.trail);
-  }
-  if(mode==='orbit'||mode==='fly'){
-    if(shieldUp){
+    /* --- tether and aim guide --- */
+    if(mode==='orbit'){
+      const p=planets[cur];
       ctx.save();
-      ctx.globalAlpha=.55+Math.sin(clock*4)*.18;
-      ctx.strokeStyle='#7FD1C1'; ctx.lineWidth=1.6;
-      ctx.beginPath(); ctx.arc(px,py,PLAYER_R+6,0,TAU); ctx.stroke();
+      ctx.strokeStyle = graceT>0 ? rgbaH(CREAM,.5) : rgbaH(BRASS,.32);
+      ctx.lineWidth=1;
+      ctx.beginPath(); ctx.moveTo(p.x,p.y); ctx.lineTo(px,py); ctx.stroke();
+      ctx.restore();
+      if(practice() || (rings < GUIDE_RINGS && bestRings < 30)){
+        const sgn=Math.sign(spin)||1;
+        const gx=-Math.sin(angle)*sgn, gy=Math.cos(angle)*sgn;
+        ctx.save();
+        ctx.strokeStyle=rgbaH(CREAM,.34); ctx.lineWidth=1.4; ctx.setLineDash([2,9]);
+        ctx.beginPath(); ctx.moveTo(px,py); ctx.lineTo(px+gx*250, py+gy*250); ctx.stroke();
+        ctx.restore();
+      }
+    }
+
+    /* --- ghost --- */
+    if(ghostPath && ghostPath.length>3){
+      const gi=Math.min(ghostIdx,(ghostPath.length>>1)-1);
+      const gx=ghostPath[gi*2], gy=ghostPath[gi*2+1];
+      ctx.save();
+      ctx.globalAlpha=.34; ctx.strokeStyle=CREAM; ctx.lineWidth=1;
+      ctx.beginPath(); ctx.arc(gx,gy,PLAYER_R+1.5,0,TAU); ctx.stroke();
+      ctx.globalAlpha=.16; ctx.fillStyle=CREAM;
+      ctx.beginPath(); ctx.arc(gx,gy,PLAYER_R,0,TAU); ctx.fill();
       ctx.restore();
     }
-    let s=0, ang=0;
-    if(mode==='fly'){
-      ang=Math.atan2(vy,vx);
-      s=Math.min(.45, .18+.27*Math.min(1,Math.hypot(vx,vy)/SPEED));
-    } else if(popT>0){
-      s=-.35*popT;                                    // squash on landing
-      ang=angle+Math.PI/2;
-    } else ang=angle+Math.PI/2;
-    const a = graceT>0 ? (.45+Math.sin(clock*22)*.35) : 1;
-    drawTraveller(px,py,ang,s,PLAYER_R,sk,a);
-  }
 
-  for(const s of sparks){
-    ctx.globalAlpha=Math.max(0,s.life); ctx.fillStyle=HZ.fill;
-    ctx.beginPath(); ctx.arc(s.x,s.y,2.2,0,TAU); ctx.fill();
+    /* --- trail, then the traveller --- */
+    const sk = SKINS[skin] || SKINS.pearl;
+    if(trail.length>2){
+      const pts=[];
+      for(let i=trail.length-1;i>=0;i--) pts.push(trail[i]);   // newest first
+      drawTrail(pts, 6, sk.trail);
+    }
+    if(mode==='orbit'||mode==='fly'){
+      if(shieldUp){
+        ctx.save();
+        ctx.globalAlpha=.55+Math.sin(clock*4)*.18;
+        ctx.strokeStyle='#7FD1C1'; ctx.lineWidth=1.6;
+        ctx.beginPath(); ctx.arc(px,py,PLAYER_R+6,0,TAU); ctx.stroke();
+        ctx.restore();
+      }
+      let s=0, ang=0;
+      if(mode==='fly'){
+        ang=Math.atan2(vy,vx);
+        s=Math.min(.45, .18+.27*Math.min(1,Math.hypot(vx,vy)/SPEED));
+      } else if(popT>0){
+        s=-.35*popT;                                    // squash on landing
+        ang=angle+Math.PI/2;
+      } else ang=angle+Math.PI/2;
+      const a = graceT>0 ? (.45+Math.sin(clock*22)*.35) : 1;
+      drawTraveller(px,py,ang,s,PLAYER_R,sk,a);
+    }
+
+    for(const s of sparks){
+      ctx.globalAlpha=Math.max(0,s.life); ctx.fillStyle=HZ.fill;
+      ctx.beginPath(); ctx.arc(s.x,s.y,2.2,0,TAU); ctx.fill();
+    }
   }
   ctx.globalAlpha=1; ctx.restore();
 
@@ -2458,6 +2479,9 @@ function showTitle(){
   closePanel('pausePanel'); closePanel('overPanel');
   panelZ = 10;                       // back to the base layer
   $('pauseBtn').hidden=true; $('hud').hidden=true;
+  $('banner').classList.remove('show'); bannerT = 0;
+  $('coach').classList.remove('show');  coachT  = 0;
+  shake = 0;
   $('titlePanel').hidden=false;
   paintTitle();
 }

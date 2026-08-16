@@ -11,7 +11,7 @@ node tests/smoke.mjs
 ```
 
 **Status: all five ship blockers are fixed, plus the art pass, a Settings menu
-and practice mode. 16 of 17 checks pass.**
+and practice mode. 17 of 18 checks pass.**
 
 ```
 PASS  boots and opens every panel with no runtime error
@@ -31,6 +31,7 @@ PASS  an unguided run still earns coins and sets records (control)
 PASS  the Daily Challenge refuses to start while the aim guide is on
 PASS  settings can be changed from the pause menu during a run
 PASS  closing Settings returns to the pause menu, still operable
+PASS  the results screen does not render the world you died in
 ```
 
 The single remaining failure is a known bug documented under
@@ -172,6 +173,29 @@ The regression test for it uses a real pointer click rather than
 `element.click()`, because a DOM click fires straight through an overlay without
 noticing — it would have passed on the broken build. Verified against a
 pre-fix build: the click is intercepted by `pausePanel` and the test fails.
+
+**The results screen was a photo of your death.** The canvas kept rendering the
+frozen gameplay frame, and the panel backdrop is translucent, so every run ended
+staring at the exact spot you lost — bright halos and hazards smudging through
+behind the score. Menus now draw the background layers only (sky, dust, stars);
+the world is skipped for `title` and `over`. Pause deliberately still shows the
+world, because there you are about to resume and seeing what you are suspended
+in is the point.
+
+The DOM overlays were bleeding through the same way — the score readout, the
+level banner, the coaching line and any live toast all sat behind the panel and
+showed through. Those are cleared at `endRun` alongside the canvas change.
+
+Writing the test for this turned up a second, real bug. Its control asserts the
+frame is static at game over, and it was not: `shake` is set to 12 on death but
+only decays inside `step()`, which stops running in the `over` state — so it
+stayed pinned above the threshold and `draw()` re-jittered the whole canvas by
+`Math.random()` on every frame, forever. Cleared at `endRun` and `showTitle`.
+
+Hiding the HUD then *forced* the fix for Medium 11 rather than leaving it
+optional: `continueRun()` never restored the pause button, and now it had a
+hidden HUD to restore too. Buying a life or watching a revive ad would have left
+the player with no readout and no way to pause on a phone.
 
 **Settings is its own panel**, reachable from the title screen and the pause
 menu. High-contrast hazards moved here out of the Store, where it sat between
@@ -321,7 +345,7 @@ planets' moons updated per frame to render about six. Iterate a window around
 After buying a life or watching a revive ad there is no pause button for the rest
 of the run, and no Escape key on a phone. One line.
 
-**12. Mode choice is not persisted.** `gameMode` is absent from `save()`, so it
+**11. Mode choice is not persisted.** `gameMode` is absent from `save()`, so it
 resets to Classic on every launch.
 
 ### Low
